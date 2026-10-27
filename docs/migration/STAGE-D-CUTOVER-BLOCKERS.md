@@ -19,11 +19,11 @@
 
 ## 仍阻断
 
-1. `custom` Provider 适配器尚未实现
+1. 真实 Provider 已完成 OpenAI-compatible 适配，等待极小文本调用验收
    - 生产 TEXT 渠道：`api.deepseek.com`
    - 生产 VIDEO/IMAGE/MUSIC 渠道：`api.seedance.nz`
    - 当前 `getGenerationProvider()` 对 `custom` 明确抛错，不再静默使用 mock
-2. 计费/权益仍为最小策略
+2. 计费/权益仍为最小策略，`BILLING_ADAPTER_NOT_IMPLEMENTED` 仍阻止切流
 3. 真实文本、视频、数字人、ASR、OSS 全链路尚未在新 API 私有端口验收
 4. `FILE_STORAGE=oss` 尚未在独立进程环境打开并做真实上传/下载验证
 

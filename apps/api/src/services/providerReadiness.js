@@ -59,6 +59,6 @@ export function storageReadiness() {
 export async function cutoverReadiness() {
   const provider = await providerReadiness();
   const storage = storageReadiness();
-  const blockers = [...provider.blockers, ...storage.blockers];
+  const blockers = [...provider.blockers, ...storage.blockers, 'BILLING_ADAPTER_NOT_IMPLEMENTED'];
   return { ready: blockers.length === 0, provider, storage, blockers };
 }

@@ -26,7 +26,7 @@ pnpm audit:api-dependencies
 
 - 共享 MySQL：已实现 `DB_DRIVER=mysql`，尚未连接受控环境验收
 - 机构登录：已实现原平台 `sessions` / `users` / `organizations` 校验，尚未连接受控环境验收
-- AI Provider 策略与密钥：已读取共享配置；`custom` 适配器尚未实现
+- AI Provider 策略、密钥和 OpenAI-compatible 适配：已接入；待极小真实文本调用验收
 - OSS：已迁入原平台零依赖 OSS 适配，待独立进程环境验证
 - 计费/权益：当前只返回 mock policy
 

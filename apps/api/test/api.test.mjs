@@ -136,5 +136,6 @@ test('cutover readiness blocks mock provider and local storage', async () => {
   assert.equal(response.status, 409);
   assert.equal(payload.status, 'blocked');
   assert.ok(payload.blockers.includes('SHARED_STORAGE_NOT_OSS'));
+  assert.ok(payload.blockers.includes('BILLING_ADAPTER_NOT_IMPLEMENTED'));
   assert.ok(payload.blockers.some((item) => item.startsWith('PROVIDER_MOCK_ACTIVE:')));
 });

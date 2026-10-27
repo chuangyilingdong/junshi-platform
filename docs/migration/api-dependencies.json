@@ -1,8 +1,8 @@
 {
   "generatedForDate": "2026-10-27",
   "apiRoot": "apps/api/src",
-  "fileCount": 24,
-  "dependencyCount": 105,
+  "fileCount": 27,
+  "dependencyCount": 112,
   "missingCount": 0,
   "missing": [],
   "dependencies": [
@@ -400,10 +400,24 @@
     },
     {
       "importer": "apps/api/src/services/generationProvider.js",
+      "specifier": "./openaiCompatibleProvider.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/openaiCompatibleProvider.js"
+    },
+    {
+      "importer": "apps/api/src/services/generationProvider.js",
       "specifier": "./providerContract.js",
       "kind": "relative",
       "exists": true,
       "target": "apps/api/src/services/providerContract.js"
+    },
+    {
+      "importer": "apps/api/src/services/generationProvider.js",
+      "specifier": "./providerSecret.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/providerSecret.js"
     },
     {
       "importer": "apps/api/src/services/junshiAvatar.js",
@@ -677,6 +691,41 @@
       "kind": "node",
       "exists": true,
       "target": null
+    },
+    {
+      "importer": "apps/api/src/services/openaiCompatibleProvider.js",
+      "specifier": "../config.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/config.js"
+    },
+    {
+      "importer": "apps/api/src/services/openaiCompatibleProvider.js",
+      "specifier": "./modelCapabilities.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/modelCapabilities.js"
+    },
+    {
+      "importer": "apps/api/src/services/openaiCompatibleProvider.js",
+      "specifier": "./providerContract.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/providerContract.js"
+    },
+    {
+      "importer": "apps/api/src/services/openaiCompatibleProvider.js",
+      "specifier": "./upstreamCost.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/upstreamCost.js"
+    },
+    {
+      "importer": "apps/api/src/services/providerContract.js",
+      "specifier": "../lib.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/lib.js"
     },
     {
       "importer": "apps/api/src/services/providerReadiness.js",

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { normalizeAiProviderPolicy } from '../src/routes/billingConfig.js';
 import { providerSelectionForModality } from '../src/routes/aiGeneration.js';
+import { generationProviderInfo, getGenerationProvider } from '../src/services/generationProvider.js';
 
 const policy = {
   provider: 'custom',
@@ -36,4 +37,17 @@ test('provider policy falls back to mock when missing', () => {
   const normalized = normalizeAiProviderPolicy(null);
   assert.equal(normalized.mode, 'mock');
   assert.equal(providerSelectionForModality(normalized, 'TEXT').provider, 'local-mock');
+});
+test('custom provider resolves to the OpenAI-compatible adapter', () => {
+  const normalized = normalizeAiProviderPolicy(policy);
+  const selection = { ...providerSelectionForModality(normalized, 'TEXT'), apiKey: 'test-key' };
+  const info = generationProviderInfo(selection);
+  assert.equal(info.mode, 'external-adapter');
+  assert.equal(info.adapterAvailable, true);
+  assert.equal(info.configured, true);
+  const provider = getGenerationProvider(selection);
+  assert.equal(provider.name, 'custom');
+  assert.equal(provider.model, 'deepseek-flash');
+  assert.equal(typeof provider.generateStream, 'function');
+  assert.equal(typeof provider.generate, 'function');
 });

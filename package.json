@@ -16,7 +16,8 @@
     "test:platform": "pnpm --filter @junshi/platform-core test",
     "check:shared-mysql": "node scripts/check-shared-mysql.mjs",
     "smoke:api-independent": "node scripts/smoke-independent-api.mjs",
-    "test:deploy": "node scripts/verify-deploy-templates.mjs"
+    "test:deploy": "node scripts/verify-deploy-templates.mjs",
+    "smoke:provider-text": "node scripts/smoke-real-text-provider.mjs"
   },
   "engines": {
     "node": ">=22.13.0"
