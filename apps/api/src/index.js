@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { handleJunshi } from './routes/junshi.js';
-import { ApiError, DB_DRIVER, envelope, errors, readBodyBuffer, requestContext, resolveAuth, sendJson, sendNoContent } from './lib.js';
+import { ApiError, DB_DRIVER, envelope, errors, ping, readBodyBuffer, requestContext, resolveAuth, sendJson, sendNoContent } from './lib.js';
 import { JUNSHI_API_MODE, PORT } from './config.js';
 
 const MOCK_ORG_ID = 'org_junshi_mock';
@@ -60,6 +60,18 @@ export function createApiServer() {
           database: DB_DRIVER,
           version: '0.1.0',
           baseline: 'bf98fed22be069b1fafd0d0980d48d8608d0c3fa',
+          now: new Date().toISOString(),
+        }, req);
+      }
+
+      if ((context.pathname === '/ready' || context.pathname === '/api/junshi/ready') && context.method === 'GET') {
+        const databaseHealth = await ping();
+        return sendJson(res, 200, {
+          status: 'ready',
+          service: 'junshi-api',
+          mode: JUNSHI_API_MODE,
+          database: DB_DRIVER,
+          databaseHealth,
           now: new Date().toISOString(),
         }, req);
       }

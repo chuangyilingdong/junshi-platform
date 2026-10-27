@@ -43,7 +43,7 @@ include 必须放在通用 `location /api/` 之前。
 
 1. 部署新代码，但不改 Nginx
 2. 启动 `junshi-api`
-3. 本机验证 `8790/health`
+3. 本机验证 `8790/health` 和 `8790/ready`
 4. 同时验证 8790 上的 `/api/junshi/overview`
 5. 安装 Nginx include，执行 `nginx -t`
 6. reload Nginx

@@ -46,6 +46,14 @@ test('health reports mock mode and migration baseline', async () => {
   assert.equal(payload.baseline, 'bf98fed22be069b1fafd0d0980d48d8608d0c3fa');
 });
 
+test('ready performs the database health check', async () => {
+  const { response, payload } = await request('/ready');
+  assert.equal(response.status, 200);
+  assert.equal(payload.status, 'ready');
+  assert.equal(payload.database, 'mock');
+  assert.equal(payload.databaseHealth.ok, true);
+});
+
 test('protected workbench routes reject missing mock auth', async () => {
   const { response, payload } = await request('/api/junshi/workbench/bootstrap');
   assert.equal(response.status, 401);

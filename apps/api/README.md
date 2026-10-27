@@ -5,6 +5,7 @@
 ## 当前能力
 
 - `GET /health`
+- `GET /ready`（执行数据库健康检查）
 - `GET /api/junshi/health`
 - `GET /api/junshi/overview`
 - `GET /api/junshi/workbench/bootstrap`
