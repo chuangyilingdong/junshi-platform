@@ -17,6 +17,7 @@ assert.match(serviceEnv, /JUNSHI_API_MODE=independent/);
 assert.match(serviceEnv, /DB_DRIVER=mysql/);
 assert.match(serviceEnv, /PORT=8790/);
 assert.doesNotMatch(serviceEnv, /PASSWORD\s*=/i);
+assert.match(nginx, /location = \/api\/junshi\/cutover-ready/);
 assert.match(nginx, /location \^~ \/api\/junshi\//);
 assert.match(nginx, /proxy_pass http:\/\/127\.0\.0\.1:8790/);
 assert.match(nginx, /proxy_buffering off/);
