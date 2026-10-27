@@ -2,7 +2,7 @@
   "generatedForDate": "2026-10-27",
   "apiRoot": "apps/api/src",
   "fileCount": 22,
-  "dependencyCount": 87,
+  "dependencyCount": 88,
   "missingCount": 0,
   "missing": [],
   "dependencies": [
@@ -57,17 +57,24 @@
     },
     {
       "importer": "apps/api/src/lib.js",
+      "specifier": "../../../packages/platform-core/src/auth.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "packages/platform-core/src/auth.js"
+    },
+    {
+      "importer": "apps/api/src/lib.js",
+      "specifier": "../../../packages/platform-core/src/database.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "packages/platform-core/src/database.js"
+    },
+    {
+      "importer": "apps/api/src/lib.js",
       "specifier": "../../../packages/platform-core/src/http.js",
       "kind": "relative",
       "exists": true,
       "target": "packages/platform-core/src/http.js"
-    },
-    {
-      "importer": "apps/api/src/lib.js",
-      "specifier": "../../../packages/platform-core/src/mock-db.js",
-      "kind": "relative",
-      "exists": true,
-      "target": "packages/platform-core/src/mock-db.js"
     },
     {
       "importer": "apps/api/src/routes/aiGeneration.js",

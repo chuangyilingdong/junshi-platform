@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { handleJunshi } from './routes/junshi.js';
-import { ApiError, envelope, errors, readBodyBuffer, requestContext, sendJson, sendNoContent } from './lib.js';
+import { ApiError, DB_DRIVER, envelope, errors, readBodyBuffer, requestContext, resolveAuth, sendJson, sendNoContent } from './lib.js';
 import { JUNSHI_API_MODE, PORT } from './config.js';
 
 const MOCK_ORG_ID = 'org_junshi_mock';
@@ -57,6 +57,7 @@ export function createApiServer() {
           status: 'ok',
           service: 'junshi-api',
           mode: JUNSHI_API_MODE,
+          database: DB_DRIVER,
           version: '0.1.0',
           baseline: 'bf98fed22be069b1fafd0d0980d48d8608d0c3fa',
           now: new Date().toISOString(),
@@ -68,13 +69,22 @@ export function createApiServer() {
       }
 
       const parsed = await parseRequest(req);
+      let auth = null;
+      let authError = null;
+      if (JUNSHI_API_MODE === 'mock') {
+        auth = mockAuthFor(req);
+      } else {
+        const resolved = await resolveAuth(req, context.pathname);
+        auth = resolved.auth;
+        authError = resolved.error;
+      }
       const ctx = {
         ...context,
         req,
         res,
         ...parsed,
-        auth: mockAuthFor(req),
-        authError: null,
+        auth,
+        authError,
       };
       const result = await handleJunshi(ctx);
       if (result?.__streamed) return;

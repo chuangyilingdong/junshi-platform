@@ -11,5 +11,8 @@
     "dev": "node --watch src/index.js",
     "test": "node --test test/*.test.mjs",
     "check:migration": "node ../../scripts/verify-migration.mjs"
+  },
+  "dependencies": {
+    "@junshi/platform-core": "workspace:*"
   }
 }

@@ -11,7 +11,26 @@ export {
   readBodyBuffer,
   readJson,
 } from '../../../packages/platform-core/src/http.js';
-export { aq, arow, arows, resetMockDb, seedMockDb } from '../../../packages/platform-core/src/mock-db.js';
+export {
+  aq,
+  arow,
+  arows,
+  ping,
+  closeDb,
+  DB_DRIVER,
+  dbConfig,
+  resetMockDb,
+  seedMockDb,
+} from '../../../packages/platform-core/src/database.js';
+export {
+  tokenHash,
+  readToken,
+  normalizeUser,
+  assertUserAccountAvailable,
+  resolveAuth,
+  resolveAuthWithStore,
+  getAuth,
+} from '../../../packages/platform-core/src/auth.js';
 import { errors } from '../../../packages/platform-core/src/http.js';
 
 export function requireAuth(ctx) {

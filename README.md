@@ -5,21 +5,23 @@
 ## 当前状态
 
 - 迁移基线：`bf98fed22be069b1fafd0d0980d48d8608d0c3fa`
-- 当前阶段：阶段 A（建仓与白名单盘点）
+- 当前阶段：阶段 C（共享 MySQL 与机构登录适配）
 - 桌面客户端源码已迁入 `apps/desktop`
 - `/api/junshi/*` 路由、服务、Worker、资料和迁移已迁入
-- API 已可在 mock 环境独立启动，完成静态资料、mock DB、mock Provider 和 SSE 对话
-- 未连接生产 MySQL、未改 Nginx、未切流量
+- API 可在 mock 环境独立启动，SSE 对话链路已跑通
+- 共享 MySQL 与机构会话鉴权适配已实现
+- 真实 MySQL 连通验收仍需受控环境变量，尚未切生产
+- 未改 Nginx、未切流量
 
 ## 目录
 
 ```text
 apps/
   desktop/                 Electron 客户端
-  api/                     独立 API（迁入中）
+  api/                     独立 API
 packages/
   contracts/               客户端/API 契约
-  platform-core/           最小平台适配内核
+  platform-core/           MySQL、鉴权、HTTP、Provider 适配
 deploy/
   migrations/              20 个 Junshi MySQL 迁移
   systemd/                 systemd unit
@@ -27,7 +29,7 @@ deploy/
   release/                 发布脚本与清单
 docs/
   operations/              交接与验收资料
-  migration/               基线清单与迁移记录
+  migration/               基线清单、依赖审计和阶段记录
 scripts/                   验收脚本与迁移校验
 ```
 
@@ -43,14 +45,27 @@ scripts/                   验收脚本与迁移校验
 ## 常用命令
 
 ```powershell
+$env:PATH='C:\Users\Administrator\.vibe-coding\node;'+$env:PATH
 pnpm install
-pnpm --filter @junshi/desktop test
 pnpm test:migration
+pnpm test:platform
+pnpm test:api
 ```
 
 `test:migration` 校验从基线迁入的文件内容与清单哈希一致。
 
-Mock API 测试：
-ode --test apps/api/test/api.test.mjs。
+Mock API：
+
+```powershell
+$env:JUNSHI_API_MODE='mock'
+node apps/api/src/index.js
+```
+
+共享 MySQL 只读检查：
+
+```powershell
+$env:DB_DRIVER='mysql'
+node scripts/check-shared-mysql.mjs
+```
 
 验收脚本不再包含明文测试密码；需要真实验收时，在本地设置 `JUNSHI_TEST_PASSWORD`。

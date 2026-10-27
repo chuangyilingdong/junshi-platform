@@ -12,7 +12,10 @@
     "audit:api-dependencies": "node scripts/audit-api-dependencies.mjs",
     "dev:api": "pnpm --filter @junshi/api dev",
     "start:api": "pnpm --filter @junshi/api start",
-    "test:api": "pnpm --filter @junshi/api test"
+    "test:api": "pnpm --filter @junshi/api test",
+    "test:platform": "pnpm --filter @junshi/platform-core test",
+    "check:shared-mysql": "node scripts/check-shared-mysql.mjs",
+    "smoke:api-independent": "node scripts/smoke-independent-api.mjs"
   },
   "engines": {
     "node": ">=22.13.0"
