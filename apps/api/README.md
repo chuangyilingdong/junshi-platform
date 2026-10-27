@@ -6,6 +6,7 @@
 
 - `GET /health`
 - `GET /ready`（执行数据库健康检查）
+- `GET /cutover-ready`（检查 Provider、OSS 和切流阻断项）
 - `GET /api/junshi/health`
 - `GET /api/junshi/overview`
 - `GET /api/junshi/workbench/bootstrap`

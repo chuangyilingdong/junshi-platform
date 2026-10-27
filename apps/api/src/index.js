@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { handleJunshi } from './routes/junshi.js';
 import { ApiError, DB_DRIVER, envelope, errors, ping, readBodyBuffer, requestContext, resolveAuth, sendJson, sendNoContent } from './lib.js';
 import { JUNSHI_API_MODE, PORT } from './config.js';
+import { cutoverReadiness } from './services/providerReadiness.js';
 
 const MOCK_ORG_ID = 'org_junshi_mock';
 const MOCK_USER_ID = 'usr_junshi_mock_org_admin';
@@ -73,6 +74,20 @@ export function createApiServer() {
           mode: JUNSHI_API_MODE,
           database: DB_DRIVER,
           databaseHealth,
+          now: new Date().toISOString(),
+        }, req);
+      }
+
+      if ((context.pathname === '/cutover-ready' || context.pathname === '/api/junshi/cutover-ready') && context.method === 'GET') {
+        const databaseHealth = await ping();
+        const readiness = await cutoverReadiness();
+        return sendJson(res, readiness.ready ? 200 : 409, {
+          status: readiness.ready ? 'ready' : 'blocked',
+          service: 'junshi-api',
+          mode: JUNSHI_API_MODE,
+          database: DB_DRIVER,
+          databaseHealth,
+          ...readiness,
           now: new Date().toISOString(),
         }, req);
       }

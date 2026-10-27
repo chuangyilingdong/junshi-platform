@@ -131,3 +131,10 @@ test('chat stream completes through the local mock provider', async () => {
   assert.equal(history.payload.data.messages[0].role, 'user');
   assert.equal(history.payload.data.messages[1].role, 'assistant');
 });
+test('cutover readiness blocks mock provider and local storage', async () => {
+  const { response, payload } = await request('/cutover-ready');
+  assert.equal(response.status, 409);
+  assert.equal(payload.status, 'blocked');
+  assert.ok(payload.blockers.includes('SHARED_STORAGE_NOT_OSS'));
+  assert.ok(payload.blockers.some((item) => item.startsWith('PROVIDER_MOCK_ACTIVE:')));
+});

@@ -26,8 +26,8 @@ pnpm audit:api-dependencies
 
 - 共享 MySQL：已实现 `DB_DRIVER=mysql`，尚未连接受控环境验收
 - 机构登录：已实现原平台 `sessions` / `users` / `organizations` 校验，尚未连接受控环境验收
-- AI Provider：默认仍为 `local-mock`
-- OSS：当前只写本地 `var/uploads`
+- AI Provider 策略与密钥：已读取共享配置；`custom` 适配器尚未实现
+- OSS：已迁入原平台零依赖 OSS 适配，待独立进程环境验证
 - 计费/权益：当前只返回 mock policy
 
-切流前必须完成真实 MySQL 只读验收、真实 Provider/OSS/计费适配和真实机构最小验收。
+切流前必须完成真实 Provider/OSS/计费适配，并让 `/cutover-ready` 返回 200。

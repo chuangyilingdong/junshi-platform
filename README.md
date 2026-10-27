@@ -13,7 +13,8 @@
 - API 可在 mock 环境独立启动，SSE 对话链路已跑通
 - 共享 MySQL 与机构会话鉴权适配已实现
 - 共享 MySQL 与机构会话鉴权已完成生产只读验收
-- 未改 Nginx、未切流量
+- Nginx 未改、未切流量；`/cutover-ready` 仍为阻断状态
+- 当前阻断详见 `docs/migration/STAGE-D-CUTOVER-BLOCKERS.md`
 
 ## 目录
 
