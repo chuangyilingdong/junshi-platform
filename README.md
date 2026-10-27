@@ -5,12 +5,14 @@
 ## 当前状态
 
 - 迁移基线：`bf98fed22be069b1fafd0d0980d48d8608d0c3fa`
-- 当前阶段：阶段 C（共享 MySQL 与机构登录适配）
+- 当前阶段：阶段 D（独立 API 已部署，Nginx 尚未切流）
+- 独立服务：`junshi-api`，`127.0.0.1:8790`，production active
+- 当前 release：`/srv/junshi-platform/releases/20261027T075157Z`
 - 桌面客户端源码已迁入 `apps/desktop`
 - `/api/junshi/*` 路由、服务、Worker、资料和迁移已迁入
 - API 可在 mock 环境独立启动，SSE 对话链路已跑通
 - 共享 MySQL 与机构会话鉴权适配已实现
-- 真实 MySQL 连通验收仍需受控环境变量，尚未切生产
+- 共享 MySQL 与机构会话鉴权已完成生产只读验收
 - 未改 Nginx、未切流量
 
 ## 目录
