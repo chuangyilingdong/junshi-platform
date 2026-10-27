@@ -183,8 +183,9 @@
       "source": "apps/server/src/services/junshiChat.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiChat.js",
-      "sha256": "a80456531caface6a4f97e74bf168568713233db036637cf2422632219e9c96d",
-      "sourceSha256": "a80456531caface6a4f97e74bf168568713233db036637cf2422632219e9c96d"
+      "sha256": "bd0072680c9f6dd9370061f3372e8e5e844e5d1945cd94fa3e4e3d2cd09e50d7",
+      "sourceSha256": "a80456531caface6a4f97e74bf168568713233db036637cf2422632219e9c96d",
+      "transformation": "attribute-chat-compute-context"
     },
     {
       "source": "apps/server/src/services/junshiDouyin.js",

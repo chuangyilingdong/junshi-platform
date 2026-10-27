@@ -35,3 +35,6 @@
 ## 公开仓库前处理
 
 6 个验收脚本原先把旧测试密码硬编码在源码中。迁入后已改为必需读取环境变量 `JUNSHI_TEST_PASSWORD`，并在清单中记录 `redact-hardcoded-test-password` 转换。
+## 后续有意变更
+
+- `junshiChat.js`：文本 Provider 调用增加 `computeContext`，让 `compute_attempts` 正确归属机构和用户；清单记录 `attribute-chat-compute-context`。
