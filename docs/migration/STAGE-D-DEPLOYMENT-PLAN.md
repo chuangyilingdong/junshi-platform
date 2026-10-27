@@ -9,7 +9,7 @@
 - Nginx 站点：`/etc/nginx/sites-available/aicyld.com`
 - 域名：`aicyld.com`
 - 生产 MySQL：验证通过
-- Junshi 目标端口：`127.0.0.1:8790`
+- Junshi 目标端口：`127.0.0.1:8790`\n- Node 运行时：复用 `/srv/ai-kids-platform/runtime/node/bin/node`
 
 ## 新进程
 

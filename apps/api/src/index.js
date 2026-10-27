@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { handleJunshi } from './routes/junshi.js';
 import { ApiError, DB_DRIVER, envelope, errors, ping, readBodyBuffer, requestContext, resolveAuth, sendJson, sendNoContent } from './lib.js';
 import { JUNSHI_API_MODE, PORT } from './config.js';
@@ -122,7 +123,7 @@ export async function startApiServer({ port = PORT, host = '127.0.0.1' } = {}) {
   return server;
 }
 
-const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+const invokedDirectly = Boolean(process.argv[1]) && realpathSync(path.resolve(process.argv[1])) === realpathSync(fileURLToPath(import.meta.url));
 if (invokedDirectly) {
   startApiServer().then(() => {
     console.log(`[junshi-api] listening on http://127.0.0.1:${PORT} (${JUNSHI_API_MODE})`);

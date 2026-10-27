@@ -10,6 +10,7 @@ const nginx = await readFile(path.join(root, 'deploy/nginx/junshi-api-location.c
 
 assert.match(service, /EnvironmentFile=\/etc\/ai-kids-platform\/production\.env/);
 assert.match(service, /EnvironmentFile=-\/etc\/junshi-platform\/production\.env/);
+assert.match(service, /\/srv\/ai-kids-platform\/runtime\/node\/bin\/node/);
 assert.match(service, /apps\/api\/src\/index\.js/);
 assert.match(service, /NoNewPrivileges=true/);
 assert.match(serviceEnv, /JUNSHI_API_MODE=independent/);

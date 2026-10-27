@@ -15,5 +15,5 @@
 - 先加载现有 `/etc/ai-kids-platform/production.env`，共享 MySQL 配置
 - Junshi 自己的非秘密配置放在 `/etc/junshi-platform/production.env`
 - 不在新仓库复制数据库密码
-- 独立端口默认 `8790`
+- 复用现有 `/srv/ai-kids-platform/runtime/node/bin/node`\n- 独立端口默认 `8790`
 - 安装前需要先部署代码到 `/srv/junshi-platform/current`
