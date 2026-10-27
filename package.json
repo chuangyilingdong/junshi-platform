@@ -1,0 +1,17 @@
+{
+  "name": "junshi-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.19.0",
+  "scripts": {
+    "dev:desktop": "pnpm --filter @junshi/desktop dev",
+    "dist:desktop": "pnpm --filter @junshi/desktop dist:win",
+    "test:desktop": "pnpm --filter @junshi/desktop test",
+    "test:migration": "node scripts/verify-migration.mjs",
+    "audit:api-dependencies": "node scripts/audit-api-dependencies.mjs"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
