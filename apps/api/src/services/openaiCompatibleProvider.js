@@ -365,7 +365,7 @@ function requestBody({ modality, model, prompt, title, voice = 'alloy', options 
       if (toolChoice) rendered.tool_choice = toolChoice;
     }
     if (/^MiniMax-H3$/i.test(String(model || '').trim()) && !rendered?.metadata?.h3_request) {
-      return { model: String(model).trim(), metadata: { h3_request: rendered } };
+      return { model: String(model).trim(), prompt: String(prompt || ''), metadata: { h3_request: rendered } };
     }
     return rendered;
   }
