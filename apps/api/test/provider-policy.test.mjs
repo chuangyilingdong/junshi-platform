@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { normalizeAiProviderPolicy } from '../src/routes/billingConfig.js';
 import { providerSelectionForModality } from '../src/routes/aiGeneration.js';
-import { generationProviderInfo, getGenerationProvider } from '../src/services/generationProvider.js';
+import { generationProviderInfo, getGenerationProvider, providerConfig } from '../src/services/generationProvider.js';
 
 const policy = {
   provider: 'custom',
@@ -50,4 +50,16 @@ test('custom provider resolves to the OpenAI-compatible adapter', () => {
   assert.equal(provider.model, 'deepseek-flash');
   assert.equal(typeof provider.generateStream, 'function');
   assert.equal(typeof provider.generate, 'function');
+});
+test('provider config preserves model templates and custom paths', () => {
+  const selected = {
+    provider: 'custom', model: 'MiniMax-H3', endpoint: 'https://api.seedance.nz', channelId: 'video-channel', apiKey: 'test-key',
+    requestTemplates: {}, modelRequestTemplates: { 'MiniMax-H3': { model: '{{model}}', content: ['{{frameItems}}'] } },
+    requestPaths: { VIDEO: '/v2/video_generation' }, pollPaths: { VIDEO: '/v2/query/video_generation/{id}' },
+  };
+  const config = providerConfig(selected);
+  assert.equal(config.valid, true);
+  assert.equal(config.requestPaths.VIDEO, '/v2/video_generation');
+  assert.equal(config.pollPaths.VIDEO, '/v2/query/video_generation/{id}');
+  assert.ok(config.modelRequestTemplates['MiniMax-H3']);
 });

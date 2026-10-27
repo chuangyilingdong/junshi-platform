@@ -364,9 +364,6 @@ function requestBody({ modality, model, prompt, title, voice = 'alloy', options 
       rendered.tools = tools;
       if (toolChoice) rendered.tool_choice = toolChoice;
     }
-    if (/^MiniMax-H3$/i.test(String(model || '').trim()) && !rendered?.metadata?.h3_request) {
-      return { model: String(model).trim(), prompt: String(prompt || ''), metadata: { h3_request: rendered } };
-    }
     return rendered;
   }
   // 没有模板的模态（音乐/播客）保持改造前的请求体形状。

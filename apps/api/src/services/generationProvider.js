@@ -70,7 +70,7 @@ export function providerSelection({
 export function providerConfig(selection = {}) {
   const selected = providerSelection(selection);
   const apiKey = selected.apiKey || getProviderApiKey(selected.channelId) || getProviderApiKey() || AI_PROVIDER_API_KEY;
-  return { ...validateProviderConfig({ ...selected, apiKey }), apiKey };
+  return { ...selected, ...validateProviderConfig({ ...selected, apiKey }), apiKey };
 }
 
 export function generationProviderInfo(selection = {}) {
