@@ -395,6 +395,7 @@ export async function runRawText(ctx, { system, user, messages: providedMessages
     messages,
     signal,
     options: { maxTokens: JUNSHI_MAX_OUTPUT_TOKENS },
+    computeContext: { orgId: ctx?.auth?.user?.orgId || null, userId: ctx?.auth?.user?.id || null },
     onDelta: (chunk) => onDelta?.(chunk),
   });
   return { model: selection.model || provider.model || '', provider: provider.name, usage: result?.usage || null };
@@ -441,6 +442,7 @@ export async function runChat(ctx, { expertId, messages, signal, onStatus, onDel
     messages: [{ role: 'system', content: system }, ...history],
     signal,
     options: { maxTokens: JUNSHI_MAX_OUTPUT_TOKENS },   // 见上方常量说明：保证正文永远写得完
+    computeContext: { orgId: ctx?.auth?.user?.orgId || null, userId: ctx?.auth?.user?.id || null },
     onDelta: (chunk) => onDelta?.(chunk),
     onReasoning: () => {
       if (reasoningSent) return;
