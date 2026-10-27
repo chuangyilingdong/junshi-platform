@@ -6,7 +6,7 @@
 
 暂不切 `/api/junshi/*`。
 
-独立 API 已部署并通过数据库、鉴权、OSS 适配代码检查，但真实 AI Provider 和计费适配仍未完成。直接切流会把当前生产 AI 能力降到 mock 或直接报错。
+独立 API 已部署，数据库、鉴权、真实 Provider 和 OSS 均已通过检查；当前唯一阻断是计费/权益适配。直接切流会跳过现有计费策略。
 
 ## 已清除
 
@@ -19,12 +19,12 @@
 
 ## 仍阻断
 
-1. 真实 Provider 已完成 OpenAI-compatible 适配，等待极小文本调用验收
+1. 真实 Provider 已完成 OpenAI-compatible 适配，极小文本调用已通过
    - 生产 TEXT 渠道：`api.deepseek.com`
    - 生产 VIDEO/IMAGE/MUSIC 渠道：`api.seedance.nz`
    - 当前 `getGenerationProvider()` 对 `custom` 明确抛错，不再静默使用 mock
 2. 计费/权益仍为最小策略，`BILLING_ADAPTER_NOT_IMPLEMENTED` 仍阻止切流
-3. 真实文本、视频、数字人、ASR、OSS 全链路尚未在新 API 私有端口验收
+3. 视频、数字人、ASR 和 OSS 上传/下载全链路尚未在新 API 私有端口验收
 4. `FILE_STORAGE=oss` 尚未在独立进程环境打开并做真实上传/下载验证
 
 ## 操作门禁

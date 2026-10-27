@@ -7,12 +7,13 @@
 - 迁移基线：`bf98fed22be069b1fafd0d0980d48d8608d0c3fa`
 - 当前阶段：阶段 D（独立 API 已部署，Nginx 尚未切流）
 - 独立服务：`junshi-api`，`127.0.0.1:8790`，production active
-- 当前 release：`/srv/junshi-platform/releases/20261027T075157Z`
+- 当前 release：`/srv/junshi-platform/releases/20261027T080202Z`
 - 桌面客户端源码已迁入 `apps/desktop`
 - `/api/junshi/*` 路由、服务、Worker、资料和迁移已迁入
 - API 可在 mock 环境独立启动，SSE 对话链路已跑通
 - 共享 MySQL 与机构会话鉴权适配已实现
-- 共享 MySQL 与机构会话鉴权已完成生产只读验收
+- 共享 MySQL、机构会话鉴权、真实 Provider 和 OSS 已完成生产检查
+- 真实文本最小调用通过；计费适配仍是切流阻断项
 - Nginx 未改、未切流量；`/cutover-ready` 仍为阻断状态
 - 当前阻断详见 `docs/migration/STAGE-D-CUTOVER-BLOCKERS.md`
 
