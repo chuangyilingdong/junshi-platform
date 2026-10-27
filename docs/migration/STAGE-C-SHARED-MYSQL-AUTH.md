@@ -84,9 +84,12 @@ node scripts/smoke-independent-api.mjs
 ```
 
 该检查以 `JUNSHI_API_MODE=independent`、`DB_DRIVER=mysql` 启动 API，只请求 `/health`，不连接或查询数据库。
+## 生产只读验收
+
+2026-10-27 已通过 `ai-kids-prod` 对生产 MySQL 做只读检查：认证表 3/3、Junshi 表 31 个、鉴权字段 18/18、有效会话 JOIN 50 条。明细见 `STAGE-C-VERIFICATION.md`。
 
 ## 尚未完成
 
-- 尚未连接生产或测试 MySQL 做真实连通性验收
-- 尚未接入真实 Provider、OSS 和计费
+- 真实 Provider、OSS 和计费尚未接入
+- 尚未创建独立 systemd 进程
 - 尚未改 Nginx

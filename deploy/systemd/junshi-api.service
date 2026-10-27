@@ -1,0 +1,24 @@
+[Unit]
+Description=Junshi Platform API
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=ai-kids-prod
+Group=ai-kids-prod
+WorkingDirectory=/srv/junshi-platform/current
+EnvironmentFile=/etc/ai-kids-platform/production.env
+EnvironmentFile=-/etc/junshi-platform/production.env
+ExecStart=/srv/junshi-platform/runtime/node/bin/node /srv/junshi-platform/current/apps/api/src/index.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/srv/junshi-platform/data /srv/junshi-platform/logs /srv/junshi-platform/uploads
+OOMPolicy=continue
+
+[Install]
+WantedBy=multi-user.target
