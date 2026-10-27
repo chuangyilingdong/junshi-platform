@@ -1,22 +1,48 @@
 # Junshi API
 
-本目录承接原网站仓库中的 `/api/junshi/*` 服务和抖音 Worker。
+独立招生军师 API，当前处于 mock 可运行阶段。
 
-## 已迁入
+## 当前能力
 
-- `src/routes/junshi.js`
-- `src/routes/junshiWorkbench.js`
-- `src/services/junshi*.js` 共 9 个模块\n- `src/services/complianceEngine.js`（本地合规规则引擎）
-- `src/douyin/*.py` 共 5 个 Worker
-- `data/junshi/*.json` 共 5 份静态资料
+- `GET /health`
+- `GET /api/junshi/health`
+- `GET /api/junshi/overview`
+- `GET /api/junshi/workbench/bootstrap`
+- `GET|POST|DELETE /api/junshi/workbench/accounts`
+- `GET|PUT /api/junshi/workbench/profile`
+- `GET|DELETE /api/junshi/workbench/chat`
+- `POST /api/junshi/workbench/chat/stream`（SSE）
 
-## 尚未完成
+Mock 鉴权：
 
-原路由仍依赖网站平台的数据库、鉴权、Provider、上传/OSS、计费和合规能力。当前不能直接启动，后续通过 `packages/platform-core` 或明确适配器补齐，不能反向引用旧网站仓库。
+```http
+x-junshi-mock-auth: 1
+```
 
-首个可运行目标：
+或：
 
-1. 建立独立 HTTP 入口和 `/api/junshi/*` 路由分发；
-2. 以 mock 鉴权、mock Provider、临时目录存储跑通最小请求；
-3. 接入共享 MySQL、机构登录、OSS 和 Provider；
-4. 完成真实机构最小验收后再讨论切流。
+```http
+Authorization: Bearer mock-token
+```
+
+## 运行
+
+```powershell
+$env:PATH='C:\Users\Administrator\.vibe-coding\node;'+$env:PATH
+$env:JUNSHI_API_MODE='mock'
+node apps/api/src/index.js
+```
+
+## 测试
+
+```powershell
+$env:PATH='C:\Users\Administrator\.vibe-coding\node;'+$env:PATH
+node --test apps/api/test/api.test.mjs
+```
+
+## 边界
+
+- mock DB 只在进程内，重启清空
+- mock Provider 不生成真实图片/视频/数字人
+- 本地上传目录为 `var/uploads`
+- 真实 MySQL、机构登录、OSS、Provider、计费和 Nginx 尚未接入

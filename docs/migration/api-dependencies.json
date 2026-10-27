@@ -1,178 +1,93 @@
 {
   "generatedForDate": "2026-10-27",
   "apiRoot": "apps/api/src",
-  "fileCount": 12,
-  "dependencyCount": 69,
-  "missingCount": 23,
-  "missing": [
-    {
-      "importer": "apps/api/src/routes/junshi.js",
-      "specifier": "../lib.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/lib.js"
-    },
-    {
-      "importer": "apps/api/src/routes/junshiWorkbench.js",
-      "specifier": "../config.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/config.js"
-    },
-    {
-      "importer": "apps/api/src/routes/junshiWorkbench.js",
-      "specifier": "../lib.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/lib.js"
-    },
-    {
-      "importer": "apps/api/src/routes/junshiWorkbench.js",
-      "specifier": "../services/fileStorage.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/services/fileStorage.js"
-    },
-    {
-      "importer": "apps/api/src/routes/junshiWorkbench.js",
-      "specifier": "../services/fileUploadSecurity.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/services/fileUploadSecurity.js"
-    },
-    {
-      "importer": "apps/api/src/routes/junshiWorkbench.js",
-      "specifier": "../services/generationProvider.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/services/generationProvider.js"
-    },
-    {
-      "importer": "apps/api/src/routes/junshiWorkbench.js",
-      "specifier": "../services/providerContract.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/services/providerContract.js"
-    },
-    {
-      "importer": "apps/api/src/routes/junshiWorkbench.js",
-      "specifier": "../services/providerSecret.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/services/providerSecret.js"
-    },
-    {
-      "importer": "apps/api/src/routes/junshiWorkbench.js",
-      "specifier": "./aiGeneration.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/routes/aiGeneration.js"
-    },
-    {
-      "importer": "apps/api/src/routes/junshiWorkbench.js",
-      "specifier": "./billingConfig.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/routes/billingConfig.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiAvatar.js",
-      "specifier": "../config.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/config.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiAvatar.js",
-      "specifier": "./providerSecret.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/services/providerSecret.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiChat.js",
-      "specifier": "../lib.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/lib.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiChat.js",
-      "specifier": "../routes/aiGeneration.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/routes/aiGeneration.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiChat.js",
-      "specifier": "../routes/billingConfig.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/routes/billingConfig.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiChat.js",
-      "specifier": "./generationProvider.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/services/generationProvider.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiChat.js",
-      "specifier": "./providerContract.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/services/providerContract.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiDouyin.js",
-      "specifier": "../config.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/config.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiDouyin.js",
-      "specifier": "./providerSecret.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/services/providerSecret.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiDouyinAssistant.js",
-      "specifier": "../lib.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/lib.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiDouyinLogin.js",
-      "specifier": "../lib.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/lib.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiTalkingHead.js",
-      "specifier": "../lib.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/lib.js"
-    },
-    {
-      "importer": "apps/api/src/services/junshiWorkbenchHosting.js",
-      "specifier": "../lib.js",
-      "kind": "relative",
-      "exists": false,
-      "target": "apps/api/src/lib.js"
-    }
-  ],
+  "fileCount": 22,
+  "dependencyCount": 87,
+  "missingCount": 0,
+  "missing": [],
   "dependencies": [
     {
+      "importer": "apps/api/src/config.js",
+      "specifier": "../../../packages/platform-core/src/config.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "packages/platform-core/src/config.js"
+    },
+    {
+      "importer": "apps/api/src/index.js",
+      "specifier": "./config.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/config.js"
+    },
+    {
+      "importer": "apps/api/src/index.js",
+      "specifier": "./lib.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/lib.js"
+    },
+    {
+      "importer": "apps/api/src/index.js",
+      "specifier": "./routes/junshi.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/routes/junshi.js"
+    },
+    {
+      "importer": "apps/api/src/index.js",
+      "specifier": "node:http",
+      "kind": "node",
+      "exists": true,
+      "target": null
+    },
+    {
+      "importer": "apps/api/src/index.js",
+      "specifier": "node:path",
+      "kind": "node",
+      "exists": true,
+      "target": null
+    },
+    {
+      "importer": "apps/api/src/index.js",
+      "specifier": "node:url",
+      "kind": "node",
+      "exists": true,
+      "target": null
+    },
+    {
+      "importer": "apps/api/src/lib.js",
+      "specifier": "../../../packages/platform-core/src/http.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "packages/platform-core/src/http.js"
+    },
+    {
+      "importer": "apps/api/src/lib.js",
+      "specifier": "../../../packages/platform-core/src/mock-db.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "packages/platform-core/src/mock-db.js"
+    },
+    {
+      "importer": "apps/api/src/routes/aiGeneration.js",
+      "specifier": "../config.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/config.js"
+    },
+    {
+      "importer": "apps/api/src/routes/billingConfig.js",
+      "specifier": "../config.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/config.js"
+    },
+    {
       "importer": "apps/api/src/routes/junshi.js",
       "specifier": "../lib.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/lib.js"
     },
     {
@@ -221,35 +136,35 @@
       "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "../config.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/config.js"
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "../lib.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/lib.js"
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "../services/fileStorage.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/services/fileStorage.js"
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "../services/fileUploadSecurity.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/services/fileUploadSecurity.js"
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "../services/generationProvider.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/services/generationProvider.js"
     },
     {
@@ -319,28 +234,28 @@
       "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "../services/providerContract.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/services/providerContract.js"
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "../services/providerSecret.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/services/providerSecret.js"
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "./aiGeneration.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/routes/aiGeneration.js"
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "./billingConfig.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/routes/billingConfig.js"
     },
     {
@@ -407,52 +322,94 @@
       "target": null
     },
     {
+      "importer": "apps/api/src/services/fileUploadSecurity.js",
+      "specifier": "../lib.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/lib.js"
+    },
+    {
+      "importer": "apps/api/src/services/fileUploadSecurity.js",
+      "specifier": "node:crypto",
+      "kind": "node",
+      "exists": true,
+      "target": null
+    },
+    {
+      "importer": "apps/api/src/services/fileUploadSecurity.js",
+      "specifier": "node:fs/promises",
+      "kind": "node",
+      "exists": true,
+      "target": null
+    },
+    {
+      "importer": "apps/api/src/services/fileUploadSecurity.js",
+      "specifier": "node:path",
+      "kind": "node",
+      "exists": true,
+      "target": null
+    },
+    {
+      "importer": "apps/api/src/services/generationProvider.js",
+      "specifier": "../config.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/config.js"
+    },
+    {
+      "importer": "apps/api/src/services/generationProvider.js",
+      "specifier": "./providerContract.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/providerContract.js"
+    },
+    {
       "importer": "apps/api/src/services/junshiAvatar.js",
       "specifier": "../config.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/config.js"
     },
     {
       "importer": "apps/api/src/services/junshiAvatar.js",
       "specifier": "./providerSecret.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/services/providerSecret.js"
     },
     {
       "importer": "apps/api/src/services/junshiChat.js",
       "specifier": "../lib.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/lib.js"
     },
     {
       "importer": "apps/api/src/services/junshiChat.js",
       "specifier": "../routes/aiGeneration.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/routes/aiGeneration.js"
     },
     {
       "importer": "apps/api/src/services/junshiChat.js",
       "specifier": "../routes/billingConfig.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/routes/billingConfig.js"
     },
     {
       "importer": "apps/api/src/services/junshiChat.js",
       "specifier": "./generationProvider.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/services/generationProvider.js"
     },
     {
       "importer": "apps/api/src/services/junshiChat.js",
       "specifier": "./providerContract.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/services/providerContract.js"
     },
     {
@@ -480,14 +437,14 @@
       "importer": "apps/api/src/services/junshiDouyin.js",
       "specifier": "../config.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/config.js"
     },
     {
       "importer": "apps/api/src/services/junshiDouyin.js",
       "specifier": "./providerSecret.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/services/providerSecret.js"
     },
     {
@@ -529,7 +486,7 @@
       "importer": "apps/api/src/services/junshiDouyinAssistant.js",
       "specifier": "../lib.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/lib.js"
     },
     {
@@ -543,7 +500,7 @@
       "importer": "apps/api/src/services/junshiDouyinLogin.js",
       "specifier": "../lib.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/lib.js"
     },
     {
@@ -599,14 +556,14 @@
       "importer": "apps/api/src/services/junshiTalkingHead.js",
       "specifier": "../lib.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/lib.js"
     },
     {
       "importer": "apps/api/src/services/junshiWorkbenchHosting.js",
       "specifier": "../lib.js",
       "kind": "relative",
-      "exists": false,
+      "exists": true,
       "target": "apps/api/src/lib.js"
     },
     {
@@ -650,6 +607,13 @@
       "kind": "node",
       "exists": true,
       "target": null
+    },
+    {
+      "importer": "apps/api/src/services/providerSecret.js",
+      "specifier": "../config.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/config.js"
     }
   ]
 }

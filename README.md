@@ -8,8 +8,8 @@
 - 当前阶段：阶段 A（建仓与白名单盘点）
 - 桌面客户端源码已迁入 `apps/desktop`
 - `/api/junshi/*` 路由、服务、Worker、资料和迁移已迁入
-- API 尚未完成平台依赖隔离，当前不可独立启动
-- 未改生产、未改 Nginx、未切流量
+- API 已可在 mock 环境独立启动，完成静态资料、mock DB、mock Provider 和 SSE 对话
+- 未连接生产 MySQL、未改 Nginx、未切流量
 
 ## 目录
 
@@ -49,5 +49,8 @@ pnpm test:migration
 ```
 
 `test:migration` 校验从基线迁入的文件内容与清单哈希一致。
+
+Mock API 测试：
+ode --test apps/api/test/api.test.mjs。
 
 验收脚本不再包含明文测试密码；需要真实验收时，在本地设置 `JUNSHI_TEST_PASSWORD`。

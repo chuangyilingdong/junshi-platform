@@ -9,7 +9,10 @@
     "dist:desktop": "pnpm --filter @junshi/desktop dist:win",
     "test:desktop": "pnpm --filter @junshi/desktop test",
     "test:migration": "node scripts/verify-migration.mjs",
-    "audit:api-dependencies": "node scripts/audit-api-dependencies.mjs"
+    "audit:api-dependencies": "node scripts/audit-api-dependencies.mjs",
+    "dev:api": "pnpm --filter @junshi/api dev",
+    "start:api": "pnpm --filter @junshi/api start",
+    "test:api": "pnpm --filter @junshi/api test"
   },
   "engines": {
     "node": ">=22.13.0"
