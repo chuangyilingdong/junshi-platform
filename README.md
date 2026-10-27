@@ -49,3 +49,5 @@ pnpm test:migration
 ```
 
 `test:migration` 校验从基线迁入的文件内容与清单哈希一致。
+
+验收脚本不再包含明文测试密码；需要真实验收时，在本地设置 `JUNSHI_TEST_PASSWORD`。

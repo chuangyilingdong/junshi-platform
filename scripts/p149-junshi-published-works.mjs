@@ -17,6 +17,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
+const testPassword = String(process.env.JUNSHI_TEST_PASSWORD || '').trim();
+if (!testPassword) throw new Error('JUNSHI_TEST_PASSWORD is required for this acceptance script');
 const root = process.cwd();
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'p149-published-works-'));
 const dbPath = path.join(temp, 'platform.db');
@@ -102,7 +104,7 @@ try {
     await sleep(100);
   }
 
-  const login = await api('/api/auth/login', { method: 'POST', body: { login: 'org-admin', password: 'org123' } });
+  const login = await api('/api/auth/login', { method: 'POST', body: { login: 'org-admin', password: testPassword } });
   const token = login.data?.token;
   assert.ok(token, `登录失败：${JSON.stringify(login)}`);
 

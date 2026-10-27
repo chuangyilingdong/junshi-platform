@@ -8,469 +8,553 @@
       "source": "apps/junshi-desktop/assets/icon.png",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/assets/icon.png",
-      "sha256": "4f96044c8c78d1de05ff4e0f47e8a42dbc0fa3164453f50dffde5a388889e1c0"
+      "sha256": "4f96044c8c78d1de05ff4e0f47e8a42dbc0fa3164453f50dffde5a388889e1c0",
+      "sourceSha256": "4f96044c8c78d1de05ff4e0f47e8a42dbc0fa3164453f50dffde5a388889e1c0"
     },
     {
       "source": "apps/junshi-desktop/package.json",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/package.json",
-      "sha256": "6174d7e14a0e51ddde76f3d06edbc62258a8763e78f27c2dd188da5ec714f7b9"
+      "sha256": "6174d7e14a0e51ddde76f3d06edbc62258a8763e78f27c2dd188da5ec714f7b9",
+      "sourceSha256": "6174d7e14a0e51ddde76f3d06edbc62258a8763e78f27c2dd188da5ec714f7b9"
     },
     {
       "source": "apps/junshi-desktop/README.md",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/README.md",
-      "sha256": "1394ce4c5bef04c2e11daadeb782f5fecbc3b7252a551af38bd7531150de1f9b"
+      "sha256": "1394ce4c5bef04c2e11daadeb782f5fecbc3b7252a551af38bd7531150de1f9b",
+      "sourceSha256": "1394ce4c5bef04c2e11daadeb782f5fecbc3b7252a551af38bd7531150de1f9b"
     },
     {
       "source": "apps/junshi-desktop/scripts/smoke-app-ux.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/scripts/smoke-app-ux.mjs",
-      "sha256": "bd40596bbe15c21b2fa22eca966cc356577bd36308fad670e370d900de8aab26"
+      "sha256": "bd40596bbe15c21b2fa22eca966cc356577bd36308fad670e370d900de8aab26",
+      "sourceSha256": "bd40596bbe15c21b2fa22eca966cc356577bd36308fad670e370d900de8aab26"
     },
     {
       "source": "apps/junshi-desktop/scripts/smoke-app.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/scripts/smoke-app.mjs",
-      "sha256": "9ddb8feaed239edba6fa3a28b687aed277fc9cc8472ee9d978852bcebe123f84"
+      "sha256": "9ddb8feaed239edba6fa3a28b687aed277fc9cc8472ee9d978852bcebe123f84",
+      "sourceSha256": "9ddb8feaed239edba6fa3a28b687aed277fc9cc8472ee9d978852bcebe123f84"
     },
     {
       "source": "apps/junshi-desktop/scripts/smoke-collector.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/scripts/smoke-collector.mjs",
-      "sha256": "ec4a150b6d09a3969e38b8a5079e2d4b62a519ef5682370e415985f28be7aa84"
+      "sha256": "ec4a150b6d09a3969e38b8a5079e2d4b62a519ef5682370e415985f28be7aa84",
+      "sourceSha256": "ec4a150b6d09a3969e38b8a5079e2d4b62a519ef5682370e415985f28be7aa84"
     },
     {
       "source": "apps/junshi-desktop/scripts/smoke.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/scripts/smoke.mjs",
-      "sha256": "d86e8dae18a1c67d1e09123e95322430cc84e129bd74cadce6ce445ef2a86548"
+      "sha256": "d86e8dae18a1c67d1e09123e95322430cc84e129bd74cadce6ce445ef2a86548",
+      "sourceSha256": "d86e8dae18a1c67d1e09123e95322430cc84e129bd74cadce6ce445ef2a86548"
     },
     {
       "source": "apps/junshi-desktop/scripts/test-douyin-data.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/scripts/test-douyin-data.mjs",
-      "sha256": "827bcae6cba07d8b715672711b5701d7076e4d5ea96b375ae5982559a0f44545"
+      "sha256": "827bcae6cba07d8b715672711b5701d7076e4d5ea96b375ae5982559a0f44545",
+      "sourceSha256": "827bcae6cba07d8b715672711b5701d7076e4d5ea96b375ae5982559a0f44545"
     },
     {
       "source": "apps/junshi-desktop/src/app-preload.cjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/app-preload.cjs",
-      "sha256": "d4aa0d374cd077c0211a810154461f176f660dfcbb78d0a2260bba1be2f09d6d"
+      "sha256": "d4aa0d374cd077c0211a810154461f176f660dfcbb78d0a2260bba1be2f09d6d",
+      "sourceSha256": "d4aa0d374cd077c0211a810154461f176f660dfcbb78d0a2260bba1be2f09d6d"
     },
     {
       "source": "apps/junshi-desktop/src/app.css",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/app.css",
-      "sha256": "8e9c4849a9fa8c901dba26d0193759689bd245b505c4dcd92e5189039c974c9e"
+      "sha256": "8e9c4849a9fa8c901dba26d0193759689bd245b505c4dcd92e5189039c974c9e",
+      "sourceSha256": "8e9c4849a9fa8c901dba26d0193759689bd245b505c4dcd92e5189039c974c9e"
     },
     {
       "source": "apps/junshi-desktop/src/app.html",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/app.html",
-      "sha256": "b8d51f7506326f39bc4f1c06ab024507898f45cc11352d986de41d614e1ed061"
+      "sha256": "b8d51f7506326f39bc4f1c06ab024507898f45cc11352d986de41d614e1ed061",
+      "sourceSha256": "b8d51f7506326f39bc4f1c06ab024507898f45cc11352d986de41d614e1ed061"
     },
     {
       "source": "apps/junshi-desktop/src/app.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/app.js",
-      "sha256": "514ffd5d4c4b1374c9ba7ec0959a60a35af4b77fd6f4b10df7839a3a6dc3a453"
+      "sha256": "514ffd5d4c4b1374c9ba7ec0959a60a35af4b77fd6f4b10df7839a3a6dc3a453",
+      "sourceSha256": "514ffd5d4c4b1374c9ba7ec0959a60a35af4b77fd6f4b10df7839a3a6dc3a453"
     },
     {
       "source": "apps/junshi-desktop/src/collector-preload.cjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/collector-preload.cjs",
-      "sha256": "a680d0a3dbce028db63e168c2adabe7bdcf46ee1e73c0c334d4f93e5026b6d61"
+      "sha256": "a680d0a3dbce028db63e168c2adabe7bdcf46ee1e73c0c334d4f93e5026b6d61",
+      "sourceSha256": "a680d0a3dbce028db63e168c2adabe7bdcf46ee1e73c0c334d4f93e5026b6d61"
     },
     {
       "source": "apps/junshi-desktop/src/collector.css",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/collector.css",
-      "sha256": "0da4a8f3bf5a9000208597086a744c4f331f8adb8fbeeb0a27f82304ef65d06c"
+      "sha256": "0da4a8f3bf5a9000208597086a744c4f331f8adb8fbeeb0a27f82304ef65d06c",
+      "sourceSha256": "0da4a8f3bf5a9000208597086a744c4f331f8adb8fbeeb0a27f82304ef65d06c"
     },
     {
       "source": "apps/junshi-desktop/src/collector.html",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/collector.html",
-      "sha256": "6cb94a1c4b32adde8b1a7e5132b009972e7462d6a6d9fc69cc6e6ca43b2f5689"
+      "sha256": "6cb94a1c4b32adde8b1a7e5132b009972e7462d6a6d9fc69cc6e6ca43b2f5689",
+      "sourceSha256": "6cb94a1c4b32adde8b1a7e5132b009972e7462d6a6d9fc69cc6e6ca43b2f5689"
     },
     {
       "source": "apps/junshi-desktop/src/collector.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/collector.js",
-      "sha256": "1107a96cb29599e18539dceb17ee11d184b739dbf0179fe9d157825dc5b5d6e1"
+      "sha256": "1107a96cb29599e18539dceb17ee11d184b739dbf0179fe9d157825dc5b5d6e1",
+      "sourceSha256": "1107a96cb29599e18539dceb17ee11d184b739dbf0179fe9d157825dc5b5d6e1"
     },
     {
       "source": "apps/junshi-desktop/src/douyin-data.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/douyin-data.mjs",
-      "sha256": "1ff9cfb902d954296678a9ee76644b5d65d61d89876a547cec02f73a8fca4b2b"
+      "sha256": "1ff9cfb902d954296678a9ee76644b5d65d61d89876a547cec02f73a8fca4b2b",
+      "sourceSha256": "1ff9cfb902d954296678a9ee76644b5d65d61d89876a547cec02f73a8fca4b2b"
     },
     {
       "source": "apps/junshi-desktop/src/login.html",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/login.html",
-      "sha256": "547aff4e943e7e5d613ebd2bc06a9cf6aba780ea627d5a96089f317ad1461a82"
+      "sha256": "547aff4e943e7e5d613ebd2bc06a9cf6aba780ea627d5a96089f317ad1461a82",
+      "sourceSha256": "547aff4e943e7e5d613ebd2bc06a9cf6aba780ea627d5a96089f317ad1461a82"
     },
     {
       "source": "apps/junshi-desktop/src/main.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/main.mjs",
-      "sha256": "9182a852de10e62648ed68be32ce1f741189572585d196b86d9355a8174fbeca"
+      "sha256": "9182a852de10e62648ed68be32ce1f741189572585d196b86d9355a8174fbeca",
+      "sourceSha256": "9182a852de10e62648ed68be32ce1f741189572585d196b86d9355a8174fbeca"
     },
     {
       "source": "apps/junshi-desktop/src/preload.cjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/preload.cjs",
-      "sha256": "49096ba53238ae842a6e549b3738d207dd9aa02ec7776c36a0ce9efd4c854c72"
+      "sha256": "49096ba53238ae842a6e549b3738d207dd9aa02ec7776c36a0ce9efd4c854c72",
+      "sourceSha256": "49096ba53238ae842a6e549b3738d207dd9aa02ec7776c36a0ce9efd4c854c72"
     },
     {
       "source": "apps/junshi-desktop/src/workbench-dark.css",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/workbench-dark.css",
-      "sha256": "cf726f69e24ce078a348644aa402967078f78252ca96a4c6f10fb12bb8bd1fae"
+      "sha256": "cf726f69e24ce078a348644aa402967078f78252ca96a4c6f10fb12bb8bd1fae",
+      "sourceSha256": "cf726f69e24ce078a348644aa402967078f78252ca96a4c6f10fb12bb8bd1fae"
     },
     {
       "source": "apps/server/src/routes/junshi.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/routes/junshi.js",
-      "sha256": "452daf68b339a30737b95b8a3ccd303eecf23b09bf78d73f6f98a041e499bf58"
+      "sha256": "452daf68b339a30737b95b8a3ccd303eecf23b09bf78d73f6f98a041e499bf58",
+      "sourceSha256": "452daf68b339a30737b95b8a3ccd303eecf23b09bf78d73f6f98a041e499bf58"
     },
     {
       "source": "apps/server/src/routes/junshiWorkbench.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/routes/junshiWorkbench.js",
-      "sha256": "f44c3e10858e3a8d34de341fe9e31aa844fa594ef041f7b3cc0fd28e744a92fe"
+      "sha256": "f44c3e10858e3a8d34de341fe9e31aa844fa594ef041f7b3cc0fd28e744a92fe",
+      "sourceSha256": "f44c3e10858e3a8d34de341fe9e31aa844fa594ef041f7b3cc0fd28e744a92fe"
     },
     {
       "source": "apps/server/src/services/complianceEngine.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/complianceEngine.js",
-      "sha256": "c3f79e85f349859f6a37e50aec759a1f997ab761b61f988384fddf1c6e0a0f4f"
+      "sha256": "c3f79e85f349859f6a37e50aec759a1f997ab761b61f988384fddf1c6e0a0f4f",
+      "sourceSha256": "c3f79e85f349859f6a37e50aec759a1f997ab761b61f988384fddf1c6e0a0f4f"
     },
     {
       "source": "apps/server/src/services/junshiAvatar.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiAvatar.js",
-      "sha256": "2e6ae347ba1f9045a4555f1659ea40dc9e967056bc4eb2affe0e04cb8bbe9792"
+      "sha256": "2e6ae347ba1f9045a4555f1659ea40dc9e967056bc4eb2affe0e04cb8bbe9792",
+      "sourceSha256": "2e6ae347ba1f9045a4555f1659ea40dc9e967056bc4eb2affe0e04cb8bbe9792"
     },
     {
       "source": "apps/server/src/services/junshiChat.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiChat.js",
-      "sha256": "a80456531caface6a4f97e74bf168568713233db036637cf2422632219e9c96d"
+      "sha256": "a80456531caface6a4f97e74bf168568713233db036637cf2422632219e9c96d",
+      "sourceSha256": "a80456531caface6a4f97e74bf168568713233db036637cf2422632219e9c96d"
     },
     {
       "source": "apps/server/src/services/junshiDouyin.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiDouyin.js",
-      "sha256": "47ca8b75f0c2cf1dbe694c1fddca36809fe8b1eb3d72a1b31b6047c9c407b396"
+      "sha256": "47ca8b75f0c2cf1dbe694c1fddca36809fe8b1eb3d72a1b31b6047c9c407b396",
+      "sourceSha256": "47ca8b75f0c2cf1dbe694c1fddca36809fe8b1eb3d72a1b31b6047c9c407b396"
     },
     {
       "source": "apps/server/src/services/junshiDouyinAssistant.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiDouyinAssistant.js",
-      "sha256": "e7c8428be2aab5e1c5d33c512f258234f9cf8f3d101bc843dd1036ebb062e380"
+      "sha256": "e7c8428be2aab5e1c5d33c512f258234f9cf8f3d101bc843dd1036ebb062e380",
+      "sourceSha256": "e7c8428be2aab5e1c5d33c512f258234f9cf8f3d101bc843dd1036ebb062e380"
     },
     {
       "source": "apps/server/src/services/junshiDouyinLogin.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiDouyinLogin.js",
-      "sha256": "ac3486dd16addf4cc291fcf2c1864dba2f21f6b145a09975f87eb365abd792ea"
+      "sha256": "ac3486dd16addf4cc291fcf2c1864dba2f21f6b145a09975f87eb365abd792ea",
+      "sourceSha256": "ac3486dd16addf4cc291fcf2c1864dba2f21f6b145a09975f87eb365abd792ea"
     },
     {
       "source": "apps/server/src/services/junshiTalkingHead.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiTalkingHead.js",
-      "sha256": "9d369134fece3041cac109c080fe40b62d9755a29b1feb7406a040658b1ecd5f"
+      "sha256": "9d369134fece3041cac109c080fe40b62d9755a29b1feb7406a040658b1ecd5f",
+      "sourceSha256": "9d369134fece3041cac109c080fe40b62d9755a29b1feb7406a040658b1ecd5f"
     },
     {
       "source": "apps/server/src/services/junshiWorkbenchContent.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiWorkbenchContent.js",
-      "sha256": "f05a25bce357fe54013f44b0602c3d8c09baf1eb84e68998245e1f74d7fe47fa"
+      "sha256": "f05a25bce357fe54013f44b0602c3d8c09baf1eb84e68998245e1f74d7fe47fa",
+      "sourceSha256": "f05a25bce357fe54013f44b0602c3d8c09baf1eb84e68998245e1f74d7fe47fa"
     },
     {
       "source": "apps/server/src/services/junshiWorkbenchHosting.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiWorkbenchHosting.js",
-      "sha256": "cf557ed1211842bbffe7e454fcbc6c5e81f160a169864613d133b95977c8f412"
+      "sha256": "cf557ed1211842bbffe7e454fcbc6c5e81f160a169864613d133b95977c8f412",
+      "sourceSha256": "cf557ed1211842bbffe7e454fcbc6c5e81f160a169864613d133b95977c8f412"
     },
     {
       "source": "apps/server/src/services/junshiWorkbenchPackaging.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiWorkbenchPackaging.js",
-      "sha256": "cc5f5f059770b24ee0b9cc9b0133e34a4442e3b11cf7d00612c262cb34def49c"
+      "sha256": "cc5f5f059770b24ee0b9cc9b0133e34a4442e3b11cf7d00612c262cb34def49c",
+      "sourceSha256": "cc5f5f059770b24ee0b9cc9b0133e34a4442e3b11cf7d00612c262cb34def49c"
     },
     {
       "source": "apps/server/src/douyin/douyin_browser_runtime.py",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/douyin/douyin_browser_runtime.py",
-      "sha256": "599f44895a376259368413860272586b1184b8abdbf35810adeba5428f9077e4"
+      "sha256": "599f44895a376259368413860272586b1184b8abdbf35810adeba5428f9077e4",
+      "sourceSha256": "599f44895a376259368413860272586b1184b8abdbf35810adeba5428f9077e4"
     },
     {
       "source": "apps/server/src/douyin/douyin_browser_worker.py",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/douyin/douyin_browser_worker.py",
-      "sha256": "9b7e33030716049caccb141a436ec4d202e6b8d131bfdc5e32ab62b76a2018fe"
+      "sha256": "9b7e33030716049caccb141a436ec4d202e6b8d131bfdc5e32ab62b76a2018fe",
+      "sourceSha256": "9b7e33030716049caccb141a436ec4d202e6b8d131bfdc5e32ab62b76a2018fe"
     },
     {
       "source": "apps/server/src/douyin/douyin_login_worker.py",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/douyin/douyin_login_worker.py",
-      "sha256": "b671c747075f71ad7a411441fa702700195cd904d036eabfd11277f778014dfa"
+      "sha256": "b671c747075f71ad7a411441fa702700195cd904d036eabfd11277f778014dfa",
+      "sourceSha256": "b671c747075f71ad7a411441fa702700195cd904d036eabfd11277f778014dfa"
     },
     {
       "source": "apps/server/src/douyin/douyin_video_worker.py",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/douyin/douyin_video_worker.py",
-      "sha256": "48c3227e3ba74fc63bb160ec8a8f89b3717d0491831f7df0a1657c6a1268fb15"
+      "sha256": "48c3227e3ba74fc63bb160ec8a8f89b3717d0491831f7df0a1657c6a1268fb15",
+      "sourceSha256": "48c3227e3ba74fc63bb160ec8a8f89b3717d0491831f7df0a1657c6a1268fb15"
     },
     {
       "source": "apps/server/src/douyin/douyin_worker.py",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/douyin/douyin_worker.py",
-      "sha256": "3587602eabc1ccee0c10cc60f391c92e7c4262a183f335789c943ad93b72f16b"
+      "sha256": "3587602eabc1ccee0c10cc60f391c92e7c4262a183f335789c943ad93b72f16b",
+      "sourceSha256": "3587602eabc1ccee0c10cc60f391c92e7c4262a183f335789c943ad93b72f16b"
     },
     {
       "source": "apps/server/data/junshi/chunks.json",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/data/junshi/chunks.json",
-      "sha256": "130905f204c3581541fffcbe17f9514c1b4ac31c1585070ac7d10b89488d5739"
+      "sha256": "130905f204c3581541fffcbe17f9514c1b4ac31c1585070ac7d10b89488d5739",
+      "sourceSha256": "130905f204c3581541fffcbe17f9514c1b4ac31c1585070ac7d10b89488d5739"
     },
     {
       "source": "apps/server/data/junshi/compliance-rules.json",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/data/junshi/compliance-rules.json",
-      "sha256": "84b4761d1ddea1b84f556deaca92e1966d2e9179861350101f364e941952cd8a"
+      "sha256": "84b4761d1ddea1b84f556deaca92e1966d2e9179861350101f364e941952cd8a",
+      "sourceSha256": "84b4761d1ddea1b84f556deaca92e1966d2e9179861350101f364e941952cd8a"
     },
     {
       "source": "apps/server/data/junshi/compliance.json",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/data/junshi/compliance.json",
-      "sha256": "1365faafe6c53de0b5b1450d54b0eb3558349a66f560ce89234ba02195c54c61"
+      "sha256": "1365faafe6c53de0b5b1450d54b0eb3558349a66f560ce89234ba02195c54c61",
+      "sourceSha256": "1365faafe6c53de0b5b1450d54b0eb3558349a66f560ce89234ba02195c54c61"
     },
     {
       "source": "apps/server/data/junshi/knowledge.json",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/data/junshi/knowledge.json",
-      "sha256": "ceea7236e6e376b285bb81da292703f7d3084ce025ea868ee2845aca5d1dbf69"
+      "sha256": "ceea7236e6e376b285bb81da292703f7d3084ce025ea868ee2845aca5d1dbf69",
+      "sourceSha256": "ceea7236e6e376b285bb81da292703f7d3084ce025ea868ee2845aca5d1dbf69"
     },
     {
       "source": "apps/server/data/junshi/library.json",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/data/junshi/library.json",
-      "sha256": "3cb0730fada60ef5d7e0cce520aeb140aa2ee8e800afe740a0ad9c4062fb15d9"
+      "sha256": "3cb0730fada60ef5d7e0cce520aeb140aa2ee8e800afe740a0ad9c4062fb15d9",
+      "sourceSha256": "3cb0730fada60ef5d7e0cce520aeb140aa2ee8e800afe740a0ad9c4062fb15d9"
     },
     {
       "source": "deploy/production/migrate/27-junshi-profiles-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/27-junshi-profiles-mysql.sql",
-      "sha256": "c5d18357c0a88898a66d99eb2afdfefe900fce14ec9102668ea410c1b43fbc46"
+      "sha256": "c5d18357c0a88898a66d99eb2afdfefe900fce14ec9102668ea410c1b43fbc46",
+      "sourceSha256": "c5d18357c0a88898a66d99eb2afdfefe900fce14ec9102668ea410c1b43fbc46"
     },
     {
       "source": "deploy/production/migrate/28-junshi-conversations-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/28-junshi-conversations-mysql.sql",
-      "sha256": "8a4f3e4c42de4552b57db7cfbcb3e284f2bd16d2f70e84bbc4881f67095b8586"
+      "sha256": "8a4f3e4c42de4552b57db7cfbcb3e284f2bd16d2f70e84bbc4881f67095b8586",
+      "sourceSha256": "8a4f3e4c42de4552b57db7cfbcb3e284f2bd16d2f70e84bbc4881f67095b8586"
     },
     {
       "source": "deploy/production/migrate/29-junshi-workbench-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/29-junshi-workbench-mysql.sql",
-      "sha256": "d75792340940098fb9d5f74cae99b9ee6d4aa1256f30363a68cd41ffac6c24c0"
+      "sha256": "d75792340940098fb9d5f74cae99b9ee6d4aa1256f30363a68cd41ffac6c24c0",
+      "sourceSha256": "d75792340940098fb9d5f74cae99b9ee6d4aa1256f30363a68cd41ffac6c24c0"
     },
     {
       "source": "deploy/production/migrate/30-junshi-workbench-accounts-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/30-junshi-workbench-accounts-mysql.sql",
-      "sha256": "1b149cdba9257ea98edce068ed8b1efff6adc5dc3e04187fdb1be50c343e9936"
+      "sha256": "1b149cdba9257ea98edce068ed8b1efff6adc5dc3e04187fdb1be50c343e9936",
+      "sourceSha256": "1b149cdba9257ea98edce068ed8b1efff6adc5dc3e04187fdb1be50c343e9936"
     },
     {
       "source": "deploy/production/migrate/31-junshi-workbench-workflows-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/31-junshi-workbench-workflows-mysql.sql",
-      "sha256": "697fd64cef66e441abbfc4cee8f1e4b9b8e5fbb29709c455b2d9422978a854be"
+      "sha256": "697fd64cef66e441abbfc4cee8f1e4b9b8e5fbb29709c455b2d9422978a854be",
+      "sourceSha256": "697fd64cef66e441abbfc4cee8f1e4b9b8e5fbb29709c455b2d9422978a854be"
     },
     {
       "source": "deploy/production/migrate/32-junshi-workbench-transcripts-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/32-junshi-workbench-transcripts-mysql.sql",
-      "sha256": "dfebc90d4733b1383215c45ffcfeb73ae5511d0d04d8cd566988a757ccd354f9"
+      "sha256": "dfebc90d4733b1383215c45ffcfeb73ae5511d0d04d8cd566988a757ccd354f9",
+      "sourceSha256": "dfebc90d4733b1383215c45ffcfeb73ae5511d0d04d8cd566988a757ccd354f9"
     },
     {
       "source": "deploy/production/migrate/33-junshi-workbench-avatar-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/33-junshi-workbench-avatar-mysql.sql",
-      "sha256": "b328d9ad5ea2730f98a7af1f39f2f6de3d8ba6cfde98ee6022df20ef619c85ff"
+      "sha256": "b328d9ad5ea2730f98a7af1f39f2f6de3d8ba6cfde98ee6022df20ef619c85ff",
+      "sourceSha256": "b328d9ad5ea2730f98a7af1f39f2f6de3d8ba6cfde98ee6022df20ef619c85ff"
     },
     {
       "source": "deploy/production/migrate/34-junshi-workbench-brains-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/34-junshi-workbench-brains-mysql.sql",
-      "sha256": "f8b90bf645208a942029db8a27061ec6af70fefe8c15963a986f96adab6d2e87"
+      "sha256": "f8b90bf645208a942029db8a27061ec6af70fefe8c15963a986f96adab6d2e87",
+      "sourceSha256": "f8b90bf645208a942029db8a27061ec6af70fefe8c15963a986f96adab6d2e87"
     },
     {
       "source": "deploy/production/migrate/35-junshi-workbench-video-workbench-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/35-junshi-workbench-video-workbench-mysql.sql",
-      "sha256": "6e59c855ce17439f6e225385ec96d305ca5a38d4993ee7858e1849fb32a1e585"
+      "sha256": "6e59c855ce17439f6e225385ec96d305ca5a38d4993ee7858e1849fb32a1e585",
+      "sourceSha256": "6e59c855ce17439f6e225385ec96d305ca5a38d4993ee7858e1849fb32a1e585"
     },
     {
       "source": "deploy/production/migrate/37-junshi-workbench-content-cycles-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/37-junshi-workbench-content-cycles-mysql.sql",
-      "sha256": "a97ea1d324a5c72de0ae7bed948b3e9df8748b942ac8b6e0d53ea4944a0f10ea"
+      "sha256": "a97ea1d324a5c72de0ae7bed948b3e9df8748b942ac8b6e0d53ea4944a0f10ea",
+      "sourceSha256": "a97ea1d324a5c72de0ae7bed948b3e9df8748b942ac8b6e0d53ea4944a0f10ea"
     },
     {
       "source": "deploy/production/migrate/38-junshi-workbench-asset-analyses-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/38-junshi-workbench-asset-analyses-mysql.sql",
-      "sha256": "07592f027e1141f85e50a2e2d47fc3d90afcd06116cadbc8c2c5950f37ed0729"
+      "sha256": "07592f027e1141f85e50a2e2d47fc3d90afcd06116cadbc8c2c5950f37ed0729",
+      "sourceSha256": "07592f027e1141f85e50a2e2d47fc3d90afcd06116cadbc8c2c5950f37ed0729"
     },
     {
       "source": "deploy/production/migrate/39-junshi-workbench-peer-syncs-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/39-junshi-workbench-peer-syncs-mysql.sql",
-      "sha256": "da81635252776120793ec7d73f4b1378954588a32fdb4047ac06c4229d218aa4"
+      "sha256": "da81635252776120793ec7d73f4b1378954588a32fdb4047ac06c4229d218aa4",
+      "sourceSha256": "da81635252776120793ec7d73f4b1378954588a32fdb4047ac06c4229d218aa4"
     },
     {
       "source": "deploy/production/migrate/40-junshi-workbench-douyin-sessions-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/40-junshi-workbench-douyin-sessions-mysql.sql",
-      "sha256": "b474fff6b2fa004ee3937a2c39d2c5503b8808e528f8050818b879df7d77dcd1"
+      "sha256": "b474fff6b2fa004ee3937a2c39d2c5503b8808e528f8050818b879df7d77dcd1",
+      "sourceSha256": "b474fff6b2fa004ee3937a2c39d2c5503b8808e528f8050818b879df7d77dcd1"
     },
     {
       "source": "deploy/production/migrate/41-junshi-workbench-douyin-pairings-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/41-junshi-workbench-douyin-pairings-mysql.sql",
-      "sha256": "b04c242e2eed316bbc90a580ef692182e220f66c4b2126383f05e71a9241c2fe"
+      "sha256": "b04c242e2eed316bbc90a580ef692182e220f66c4b2126383f05e71a9241c2fe",
+      "sourceSha256": "b04c242e2eed316bbc90a580ef692182e220f66c4b2126383f05e71a9241c2fe"
     },
     {
       "source": "deploy/production/migrate/42-junshi-workbench-published-works-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/42-junshi-workbench-published-works-mysql.sql",
-      "sha256": "ca0aed73a055e52a02f1963ab06c7733e7cc15fc1e1406e6f4c564fb6d67d9e1"
+      "sha256": "ca0aed73a055e52a02f1963ab06c7733e7cc15fc1e1406e6f4c564fb6d67d9e1",
+      "sourceSha256": "ca0aed73a055e52a02f1963ab06c7733e7cc15fc1e1406e6f4c564fb6d67d9e1"
     },
     {
       "source": "deploy/production/migrate/43-junshi-workbench-plans-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/43-junshi-workbench-plans-mysql.sql",
-      "sha256": "ba0cdb4511bd18c5a27080a7a0e408c37a41b83e4abe779b31b8aadbba290ea7"
+      "sha256": "ba0cdb4511bd18c5a27080a7a0e408c37a41b83e4abe779b31b8aadbba290ea7",
+      "sourceSha256": "ba0cdb4511bd18c5a27080a7a0e408c37a41b83e4abe779b31b8aadbba290ea7"
     },
     {
       "source": "deploy/production/migrate/44-junshi-workbench-attachments-jobs-avatar-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/44-junshi-workbench-attachments-jobs-avatar-mysql.sql",
-      "sha256": "ff804e69c9708204f7d6f5977f02738a84f4c42caa7b1f69fa77f9549f73d001"
+      "sha256": "ff804e69c9708204f7d6f5977f02738a84f4c42caa7b1f69fa77f9549f73d001",
+      "sourceSha256": "ff804e69c9708204f7d6f5977f02738a84f4c42caa7b1f69fa77f9549f73d001"
     },
     {
       "source": "deploy/production/migrate/45-junshi-workbench-video-packages-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/45-junshi-workbench-video-packages-mysql.sql",
-      "sha256": "5c7824113199e5b24483539dc01500f57023e5fdeeccc6408ab050eed872ace6"
+      "sha256": "5c7824113199e5b24483539dc01500f57023e5fdeeccc6408ab050eed872ace6",
+      "sourceSha256": "5c7824113199e5b24483539dc01500f57023e5fdeeccc6408ab050eed872ace6"
     },
     {
       "source": "deploy/production/migrate/46-junshi-workbench-talking-head-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/46-junshi-workbench-talking-head-mysql.sql",
-      "sha256": "791a7e3c3dfbab648e1801209bb6c75c48ffc8f36cc1eca35adf002b958f20fb"
+      "sha256": "791a7e3c3dfbab648e1801209bb6c75c48ffc8f36cc1eca35adf002b958f20fb",
+      "sourceSha256": "791a7e3c3dfbab648e1801209bb6c75c48ffc8f36cc1eca35adf002b958f20fb"
     },
     {
       "source": "deploy/production/migrate/47-junshi-workbench-auto-host-mysql.sql",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "deploy/migrations/47-junshi-workbench-auto-host-mysql.sql",
-      "sha256": "d50c5f9732e985bcd24fa0bc3bdaaee696a7e1421465507c4b6239c5f4a0de8b"
+      "sha256": "d50c5f9732e985bcd24fa0bc3bdaaee696a7e1421465507c4b6239c5f4a0de8b",
+      "sourceSha256": "d50c5f9732e985bcd24fa0bc3bdaaee696a7e1421465507c4b6239c5f4a0de8b"
     },
     {
       "source": "scripts/p149-junshi-published-works.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p149-junshi-published-works.mjs",
-      "sha256": "66510524236e1f39d708b578ea3ec4eb9be4ae12d90675cbe7ab34bacb293d70"
+      "sha256": "8fb1cbc9b24adab30769cd306364ba9093c975d72856f9ff38443ab7a443d01d",
+      "sourceSha256": "66510524236e1f39d708b578ea3ec4eb9be4ae12d90675cbe7ab34bacb293d70",
+      "transformation": "redact-hardcoded-test-password"
     },
     {
       "source": "scripts/p152-junshi-plan-cards.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p152-junshi-plan-cards.mjs",
-      "sha256": "2597633fd1b98300109e3e246beb7eb68fc4f59c8945cb2f753c28c785ac4ad9"
+      "sha256": "93d6995f3a574ae676157d28b921d41a6dfd5c885afd1cf88f27fdd70a7e1410",
+      "sourceSha256": "2597633fd1b98300109e3e246beb7eb68fc4f59c8945cb2f753c28c785ac4ad9",
+      "transformation": "redact-hardcoded-test-password"
     },
     {
       "source": "scripts/p153-junshi-avatar.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p153-junshi-avatar.mjs",
-      "sha256": "efd469b228be3354a53705fa9cb20bf08b370306d88d5fb1c214be833b807db7"
+      "sha256": "efd469b228be3354a53705fa9cb20bf08b370306d88d5fb1c214be833b807db7",
+      "sourceSha256": "efd469b228be3354a53705fa9cb20bf08b370306d88d5fb1c214be833b807db7"
     },
     {
       "source": "scripts/p154-junshi-attachments-jobs.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p154-junshi-attachments-jobs.mjs",
-      "sha256": "e09dae9a7b426a4cb7f50bd5747c72ec5faba41f6be4100768ac28903a5fda76"
+      "sha256": "d8bd9297cc5be7eae368b5c9da428d0a9277da639d794a7f61bc42682930b8e9",
+      "sourceSha256": "e09dae9a7b426a4cb7f50bd5747c72ec5faba41f6be4100768ac28903a5fda76",
+      "transformation": "redact-hardcoded-test-password"
     },
     {
       "source": "scripts/p155-junshi-video-package.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p155-junshi-video-package.mjs",
-      "sha256": "ff267d6050d4536ea63d7b2e421b4d72b27b0a6585d9c0ad06ee6f5e038cc507"
+      "sha256": "ab460e19548bc2a44663e221e53f593f3eb661ada32f4ab82efb6ebd761403e5",
+      "sourceSha256": "ff267d6050d4536ea63d7b2e421b4d72b27b0a6585d9c0ad06ee6f5e038cc507",
+      "transformation": "redact-hardcoded-test-password"
     },
     {
       "source": "scripts/p191-junshi-talking-head.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p191-junshi-talking-head.mjs",
-      "sha256": "ced9e3463e54454285b04fdb43ac70c4e918828fd5b29476da7eeaf2658cde46"
+      "sha256": "01f712a1e845b3df12c06beacf7551feb8d8c35626250e18dfbb7939a511c93e",
+      "sourceSha256": "ced9e3463e54454285b04fdb43ac70c4e918828fd5b29476da7eeaf2658cde46",
+      "transformation": "redact-hardcoded-test-password"
     },
     {
       "source": "scripts/p192-junshi-auto-host.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p192-junshi-auto-host.mjs",
-      "sha256": "9b4674b7e47c15dec16268d30e19202f4a072505257bf46bd50b036b2daac975"
+      "sha256": "18c69c91561855c4318073a3eb5e78fde13bcbd34214b56a83eeabe47259fdd4",
+      "sourceSha256": "9b4674b7e47c15dec16268d30e19202f4a072505257bf46bd50b036b2daac975",
+      "transformation": "redact-hardcoded-test-password"
     },
     {
       "source": "scripts/p193-junshi-asr-audio-chunking.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p193-junshi-asr-audio-chunking.mjs",
-      "sha256": "aae58b4740f1d60bd87a99a15058ce46c24fd6a5eb2b6470d24c8aac830571eb"
+      "sha256": "aae58b4740f1d60bd87a99a15058ce46c24fd6a5eb2b6470d24c8aac830571eb",
+      "sourceSha256": "aae58b4740f1d60bd87a99a15058ce46c24fd6a5eb2b6470d24c8aac830571eb"
     },
     {
       "source": "scripts/p193-junshi-mobile-composer.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p193-junshi-mobile-composer.mjs",
-      "sha256": "62dcf2a2ad392ca53108fc4665930661f81a1adcb817dac880dbba2cf0b93a6a"
+      "sha256": "62dcf2a2ad392ca53108fc4665930661f81a1adcb817dac880dbba2cf0b93a6a",
+      "sourceSha256": "62dcf2a2ad392ca53108fc4665930661f81a1adcb817dac880dbba2cf0b93a6a"
     },
     {
       "source": "scripts/p194-junshi-module-json-parser.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p194-junshi-module-json-parser.mjs",
-      "sha256": "21fb973d29627ffee90cb741119f41c758630ecc764caaf3ef7f56c903aa882e"
+      "sha256": "21fb973d29627ffee90cb741119f41c758630ecc764caaf3ef7f56c903aa882e",
+      "sourceSha256": "21fb973d29627ffee90cb741119f41c758630ecc764caaf3ef7f56c903aa882e"
     },
     {
       "source": "scripts/p194-junshi-voice-result.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p194-junshi-voice-result.mjs",
-      "sha256": "fa3aabf1d4e017d97a1d6ae48f682c62b7599042ac7ba08d7e645f564a36f666"
+      "sha256": "fa3aabf1d4e017d97a1d6ae48f682c62b7599042ac7ba08d7e645f564a36f666",
+      "sourceSha256": "fa3aabf1d4e017d97a1d6ae48f682c62b7599042ac7ba08d7e645f564a36f666"
     },
     {
       "source": "docs/operations/交接-内容工作台客户端-0.6.0-20261027.md",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "docs/operations/交接-内容工作台客户端-0.6.0-20261027.md",
-      "sha256": "8b5746b6296412b399906edb69fd17ef2a17a8cb574283be249c44329e9dd3d2"
+      "sha256": "8b5746b6296412b399906edb69fd17ef2a17a8cb574283be249c44329e9dd3d2",
+      "sourceSha256": "8b5746b6296412b399906edb69fd17ef2a17a8cb574283be249c44329e9dd3d2"
     },
     {
       "source": "docs/operations/交接-新对话-招生军师独立仓库-20261027.md",
       "sourceRef": "working-tree-2026-10-27",
       "target": "docs/operations/交接-新对话-招生军师独立仓库-20261027.md",
-      "sha256": "1092fde2fbf4ddef6185567d584fe141d5521489fba5a951f10bff98a02a3e69"
+      "sha256": "1092fde2fbf4ddef6185567d584fe141d5521489fba5a951f10bff98a02a3e69",
+      "sourceSha256": "1092fde2fbf4ddef6185567d584fe141d5521489fba5a951f10bff98a02a3e69"
     },
     {
       "source": "docs/operations/交接-新对话-招生军师客户端-0.6.0-20261027.md",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "docs/operations/交接-新对话-招生军师客户端-0.6.0-20261027.md",
-      "sha256": "0b759de6230d7cc568b1a7d3f5ec2d5e863493c8bf91c9e58b331ab26b407824"
+      "sha256": "0b759de6230d7cc568b1a7d3f5ec2d5e863493c8bf91c9e58b331ab26b407824",
+      "sourceSha256": "0b759de6230d7cc568b1a7d3f5ec2d5e863493c8bf91c9e58b331ab26b407824"
     },
     {
       "source": "docs/operations/深度对比-原版小铃铛-vs-招生军师-0.3.2-20261026.md",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "docs/operations/深度对比-原版小铃铛-vs-招生军师-0.3.2-20261026.md",
-      "sha256": "530ddccda6351f4cbfb21b9fb78d5f2d02dcd0c773572cad15cb47734a67112f"
+      "sha256": "530ddccda6351f4cbfb21b9fb78d5f2d02dcd0c773572cad15cb47734a67112f",
+      "sourceSha256": "530ddccda6351f4cbfb21b9fb78d5f2d02dcd0c773572cad15cb47734a67112f"
     }
   ]
 }

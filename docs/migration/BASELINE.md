@@ -31,3 +31,7 @@
 ## 当前已知缺口
 
 迁入的路由仍是网站平台内部模块，依赖 `lib.js`、Provider、上传/OSS、计费策略等。必须通过 `packages/platform-core` 显式适配后，API 才能独立运行。
+
+## 公开仓库前处理
+
+6 个验收脚本原先把旧测试密码硬编码在源码中。迁入后已改为必需读取环境变量 `JUNSHI_TEST_PASSWORD`，并在清单中记录 `redact-hardcoded-test-password` 转换。
