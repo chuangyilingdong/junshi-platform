@@ -4,6 +4,7 @@ import { getGenerationProvider } from './generationProvider.js';
 import { isMockProvider } from './providerContract.js';
 import { hasProviderApiKey } from './providerSecret.js';
 import { storageOverview } from './fileStorage.js';
+import { billingReadiness } from './computePricing.js';
 
 const REQUIRED_MODALITIES = ['TEXT', 'IMAGE', 'VIDEO', 'MUSIC'];
 
@@ -59,6 +60,7 @@ export function storageReadiness() {
 export async function cutoverReadiness() {
   const provider = await providerReadiness();
   const storage = storageReadiness();
-  const blockers = [...provider.blockers, ...storage.blockers, 'BILLING_ADAPTER_NOT_IMPLEMENTED'];
-  return { ready: blockers.length === 0, provider, storage, blockers };
+  const billing = await billingReadiness();
+  const blockers = [...provider.blockers, ...storage.blockers, ...billing.blockers];
+  return { ready: blockers.length === 0, provider, storage, billing, blockers };
 }

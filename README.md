@@ -13,7 +13,8 @@
 - API 可在 mock 环境独立启动，SSE 对话链路已跑通
 - 共享 MySQL 与机构会话鉴权适配已实现
 - 共享 MySQL、机构会话鉴权、真实 Provider 和 OSS 已完成生产检查
-- 真实文本最小调用通过；计费适配仍是切流阻断项
+- 真实文本最小调用通过；observation-only 计费账本已实现
+- 最终 release 复核 `/cutover-ready` 后执行 Nginx 灰度切流
 - Nginx 未改、未切流量；`/cutover-ready` 仍为阻断状态
 - 当前阻断详见 `docs/migration/STAGE-D-CUTOVER-BLOCKERS.md`
 

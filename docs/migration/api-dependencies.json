@@ -1,8 +1,8 @@
 {
   "generatedForDate": "2026-10-27",
   "apiRoot": "apps/api/src",
-  "fileCount": 27,
-  "dependencyCount": 112,
+  "fileCount": 28,
+  "dependencyCount": 116,
   "missingCount": 0,
   "missing": [],
   "dependencies": [
@@ -350,6 +350,13 @@
       "target": null
     },
     {
+      "importer": "apps/api/src/services/computePricing.js",
+      "specifier": "../lib.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/lib.js"
+    },
+    {
       "importer": "apps/api/src/services/fileStorage.js",
       "specifier": "./objectStorage.js",
       "kind": "relative",
@@ -397,6 +404,20 @@
       "kind": "relative",
       "exists": true,
       "target": "apps/api/src/config.js"
+    },
+    {
+      "importer": "apps/api/src/services/generationProvider.js",
+      "specifier": "../lib.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/lib.js"
+    },
+    {
+      "importer": "apps/api/src/services/generationProvider.js",
+      "specifier": "./computePricing.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/computePricing.js"
     },
     {
       "importer": "apps/api/src/services/generationProvider.js",
@@ -740,6 +761,13 @@
       "kind": "relative",
       "exists": true,
       "target": "apps/api/src/routes/billingConfig.js"
+    },
+    {
+      "importer": "apps/api/src/services/providerReadiness.js",
+      "specifier": "./computePricing.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/computePricing.js"
     },
     {
       "importer": "apps/api/src/services/providerReadiness.js",

@@ -6,7 +6,7 @@
 
 暂不切 `/api/junshi/*`。
 
-独立 API 已部署，数据库、鉴权、真实 Provider 和 OSS 均已通过检查；当前唯一阻断是计费/权益适配。直接切流会跳过现有计费策略。
+独立 API 已部署，数据库、鉴权、真实 Provider、OSS 和只观测算力账本均已通过检查。切流门禁具备转绿条件，需在部署最终 release 后复核。
 
 ## 已清除
 
@@ -23,9 +23,9 @@
    - 生产 TEXT 渠道：`api.deepseek.com`
    - 生产 VIDEO/IMAGE/MUSIC 渠道：`api.seedance.nz`
    - 当前 `getGenerationProvider()` 对 `custom` 明确抛错，不再静默使用 mock
-2. 计费/权益仍为最小策略，`BILLING_ADAPTER_NOT_IMPLEMENTED` 仍阻止切流
+2. 计费/权益已实现 observation-only 兼容：读取 `compute_pricing`，逐次写 `compute_attempts`，不扣学生费用
 3. 视频、数字人、ASR 和 OSS 上传/下载全链路尚未在新 API 私有端口验收
-4. `FILE_STORAGE=oss` 尚未在独立进程环境打开并做真实上传/下载验证
+4. `FILE_STORAGE=oss` 已在独立进程环境识别为 ready，仍建议切流后做一次最小上传/下载巡检
 
 ## 操作门禁
 
