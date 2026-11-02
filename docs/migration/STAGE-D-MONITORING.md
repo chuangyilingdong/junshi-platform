@@ -44,3 +44,15 @@ JUNSHI_ALERT_WEBHOOK_FORMAT=generic|feishu
 - 之后每 5 分钟
 - 随机延迟 0–20 秒
 - `Persistent=true`
+## 部署状态
+
+2026-11-02 已部署：
+
+- 当前 release：`/srv/junshi-platform/releases/20261102T031236Z`
+- `junshi-healthcheck.timer`：active
+- 手动运行：通过
+- 首次定时运行：通过
+- 周期：5 分钟
+- 下次运行时间：`2026-11-02 11:18:17 CST`
+
+当前未配置 Webhook，失败告警写入 journal。配置 `JUNSHI_ALERT_WEBHOOK_URL` 后可自动推送。

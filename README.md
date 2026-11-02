@@ -7,7 +7,7 @@
 - 迁移基线：`bf98fed22be069b1fafd0d0980d48d8608d0c3fa`
 - 当前阶段：阶段 D 完成（独立 API 已部署并完成 Nginx 灰度切流）
 - 独立服务：`junshi-api`，`127.0.0.1:8790`，production active
-- 当前 release：`/srv/junshi-platform/releases/20261027T125214Z`
+- 当前 release：`/srv/junshi-platform/releases/20261102T031236Z`
 - 桌面客户端源码已迁入 `apps/desktop`
 - `/api/junshi/*` 路由、服务、Worker、资料和迁移已迁入
 - API 可在 mock 环境独立启动，SSE 对话链路已跑通
@@ -17,6 +17,7 @@
 - 自动托管完整确认与自动打包通过
 - 旧 `/junshi` 网页关键接口回归通过
 - observation-only 计费账本已实现并验证
+- 生产健康检查每 5 分钟运行，失败写 journal；支持可选 Webhook
 - `/api/junshi/*` 已分流到 `127.0.0.1:8790`
 - 原 `/api/*` 继续由网站服务 `8789` 处理
 - 切流记录见 `docs/migration/STAGE-D-FINAL-CUTOVER.md`
