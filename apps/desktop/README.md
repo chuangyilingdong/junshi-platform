@@ -55,9 +55,13 @@ pnpm --filter @junshi/desktop dev
 ```powershell
 $env:PATH='C:\Users\Administrator\.vibe-coding\node;'+$env:PATH
 pnpm --filter @junshi/desktop test
+pnpm --filter @junshi/desktop test:installed-regression
 ```
 
 包含：
+
+安装版真实账号回归需要本机安装 `0.6.2`、保持机构账号已登录，并默认读取 `%APPDATA%\招生军师` 的会话；脚本会使用隔离临时 profile，不修改原登录态。
+
 
 - 抖音响应纯数据解析单测；
 - 登录页 Electron 冒烟；

@@ -16,6 +16,7 @@
     "test:collector": "node scripts/smoke-collector.mjs",
     "test:app": "node scripts/smoke-app.mjs",
     "test:app-ux": "node scripts/smoke-app-ux.mjs",
+    "test:installed-regression": "node scripts/smoke-installed-real.mjs",
     "test": "npm run test:unit && npm run test:smoke && npm run test:collector && npm run test:app && npm run test:app-ux"
   },
   "dependencies": {
