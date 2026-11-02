@@ -10,7 +10,7 @@
 - 分支：`feature/vibecoding-ppt-quality-20260915`
 - HEAD：`1b8be1e31b7014edb7221bdf87a0e82c4c6bd5f6`
 - 当前工作区不干净：有 `deliverables/` 和 2 份未跟踪交接文档
-- 候选清理文件：89 个 tracked 文件，约 6.27 MB
+- E1 前候选：89 个 tracked 文件，约 6.27 MB
 - 另有 7 个集成点需要修改，但不应删除
 
 ## 旧 `/junshi` 访问量
@@ -32,7 +32,7 @@ access.log.7   142
 
 ## 清理分组
 
-### E1 · 重复客户端源码（低风险）
+### E1 · 重复客户端源码（已完成，本地提交）
 
 ```text
 apps/junshi-desktop
@@ -41,7 +41,7 @@ apps/junshi-desktop
 - 21 个 tracked 文件
 - 约 414 KB
 - 新仓库已有等价 `apps/desktop`
-- 需要同步修改根 `package.json`、`pnpm-lock.yaml`、`.gitignore`
+- 已同步修改根 `package.json`、`pnpm-lock.yaml`、`.gitignore`
 
 ### E2 · 旧服务端实现（中风险）
 
@@ -149,6 +149,21 @@ scripts/p152..p155、p191..p194 junshi-*.mjs
 - 12 个文件，约 123 KB
 - 新仓库已有对应测试或迁移后版本
 - 可随对应源码一起移除
+
+## E1 历史处理
+
+旧仓库操作期间出现并发分享修复提交，已将本地历史拆分为：
+
+```text
+09175d08 fix(share): keep share labels compact
+4543c24e chore(stage-e): remove duplicate junshi desktop source
+```
+
+重写前备份分支：
+
+```text
+backup/pre-e1-rewrite-20261102125714
+```
 
 ## 必须保留
 
