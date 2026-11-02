@@ -15,14 +15,14 @@
       "source": "apps/junshi-desktop/package.json",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/package.json",
-      "sha256": "6174d7e14a0e51ddde76f3d06edbc62258a8763e78f27c2dd188da5ec714f7b9",
+      "sha256": "5125a77313561b60afc25853b638da49668ea81e7b8ee1588ca1cd2789f151d4",
       "sourceSha256": "6174d7e14a0e51ddde76f3d06edbc62258a8763e78f27c2dd188da5ec714f7b9"
     },
     {
       "source": "apps/junshi-desktop/README.md",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/README.md",
-      "sha256": "1394ce4c5bef04c2e11daadeb782f5fecbc3b7252a551af38bd7531150de1f9b",
+      "sha256": "2534cb7761cbee1ccb0e0abf6ac9afb7aa1bbd4e47055b021274098ce598cafe",
       "sourceSha256": "1394ce4c5bef04c2e11daadeb782f5fecbc3b7252a551af38bd7531150de1f9b"
     },
     {
