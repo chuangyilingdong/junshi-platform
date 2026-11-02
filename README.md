@@ -27,6 +27,10 @@
 - 原 `/api/*` 继续由网站服务 `8789` 处理
 - 切流记录见 `docs/migration/STAGE-D-FINAL-CUTOVER.md`
 
+## 新对话交接
+
+`docs/operations/交接-新对话-招生军师正式上线-20261102.md`
+
 ## 目录
 
 ```text
