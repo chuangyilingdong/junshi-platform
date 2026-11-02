@@ -10,6 +10,7 @@
     "test:desktop": "pnpm --filter @junshi/desktop test",
     "test:migration": "node scripts/verify-migration.mjs",
     "audit:api-dependencies": "node scripts/audit-api-dependencies.mjs",
+    "audit:stage-e": "node scripts/audit-stage-e-cleanup.mjs",
     "dev:api": "pnpm --filter @junshi/api dev",
     "start:api": "pnpm --filter @junshi/api start",
     "test:api": "pnpm --filter @junshi/api test",
