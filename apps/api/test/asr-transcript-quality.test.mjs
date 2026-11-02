@@ -71,7 +71,10 @@ test('no-speech video falls back to visual text extraction and marks the source'
   const route = fs.readFileSync(new URL('../src/routes/junshiWorkbench.js', import.meta.url), 'utf8');
   const app = fs.readFileSync(new URL('../../desktop/src/app.js', import.meta.url), 'utf8');
   assert.match(route, /buildVisualTranscriptPrompt/);
-  assert.match(route, /tile=4x2/);
+  assert.match(route, /detectSceneTimes/);
+  assert.match(route, /selectSceneSampleTimes/);
+  assert.match(route, /tile=4x3/);
+  assert.match(route, /visualMeta/);
   assert.match(route, /extractVisualTextFromAsset/);
   assert.match(route, /source: 'visual'/);
   assert.match(route, /transcriptSource/);

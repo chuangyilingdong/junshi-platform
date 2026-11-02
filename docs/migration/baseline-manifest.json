@@ -15,21 +15,21 @@
       "source": "apps/junshi-desktop/package.json",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/package.json",
-      "sha256": "1d5140689e0a869c07162f144b831029e9eac38aa39c8cfee30f117f4d121307",
+      "sha256": "787bd9544f936369b459a8c6f8352540208a31d2f4da676d9b1a300f4a87d3e8",
       "sourceSha256": "6174d7e14a0e51ddde76f3d06edbc62258a8763e78f27c2dd188da5ec714f7b9"
     },
     {
       "source": "apps/junshi-desktop/README.md",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/README.md",
-      "sha256": "67a80705f39698c6af3feb76a9e4db850f399b4fd0d82abb5e96a1fd8c30adf3",
+      "sha256": "b391f44938cd0bc68c6314051dc0dc85fd6aebf5aafe27572f871bd334d053aa",
       "sourceSha256": "1394ce4c5bef04c2e11daadeb782f5fecbc3b7252a551af38bd7531150de1f9b"
     },
     {
       "source": "apps/junshi-desktop/scripts/smoke-app-ux.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/scripts/smoke-app-ux.mjs",
-      "sha256": "478df79af8457159c2ff695eadeeb7b33f8a2acc75e06e8eaf18624e32f1e5b2",
+      "sha256": "5acb182a92ecd816e0bfc1b6f54057661f9ea60c61a260138d40fd14e31caf73",
       "sourceSha256": "bd40596bbe15c21b2fa22eca966cc356577bd36308fad670e370d900de8aab26"
     },
     {
@@ -85,7 +85,7 @@
       "source": "apps/junshi-desktop/src/app.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/app.js",
-      "sha256": "aa2cefc6aae713c9ef7a1855ff61b9619db335cdbf33bbd7303b8a427b2560ee",
+      "sha256": "9d79039c6141a1828b15f15f355ae1f810a45710df4a5093cc1244cbc35e834d",
       "sourceSha256": "514ffd5d4c4b1374c9ba7ec0959a60a35af4b77fd6f4b10df7839a3a6dc3a453"
     },
     {
@@ -162,7 +162,7 @@
       "source": "apps/server/src/routes/junshiWorkbench.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/routes/junshiWorkbench.js",
-      "sha256": "993da53a3f4120597fe9b3e859d56d70dffd5a6addd945af5dd70f244e3871aa",
+      "sha256": "b801c226ba456f366e8e28fd3c7b2fbc723f1a9ec5161d6ec30a3c48e9989664",
       "sourceSha256": "f44c3e10858e3a8d34de341fe9e31aa844fa594ef041f7b3cc0fd28e744a92fe"
     },
     {

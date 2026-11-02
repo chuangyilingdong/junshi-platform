@@ -32,6 +32,7 @@ import {
   transcribeMediaReliable,
   transcriptQualityIssue,
 } from '../services/junshiDouyin.js';
+import { buildVisualTranscriptPrompt, selectSceneSampleTimes, visualFrameStrategy } from '../services/junshiVisualTranscript.js';
 import {
   seedanceChannelConfig,
   uploadToSeedance,
@@ -2627,32 +2628,25 @@ async function tickPeerAutoScheduler() {
   }
 }
 
-function buildVisualTranscriptPrompt(duration) {
-  return `【任务】这是一条抖音视频的 8 帧拼图，按从左到右、从上到下的顺序阅读。请只提取画面中明确可见的文案、字幕、标题、口播字幕和必要的英文产品名，整理成一条可读文案。
-
-【不要提取】
-- 抖音界面、用户名、头像、点赞/评论/收藏数字、按钮、进度条、水印、时间码。
-- 代码编辑器里的代码、终端日志和装饰性符号。
-- 看不清、被遮挡或无法确认的文字。
-- 不要根据常识补全，不要把相邻帧的文字强行改写成通顺的长句。
-
-【要求】
-1. 按画面出现顺序合并重复文字。
-2. 保留原文措辞和标点；只有明显重复的同一句才去重。
-3. 没有可读文案时返回 detected=false。
-4. 只输出一个 JSON 对象，不要解释或代码围栏。
-
-【视频信息】时长约 ${Math.round(Number(duration) || 0)} 秒。
-
-【输出格式】
-{"detected":true,"text":"按顺序整理出的画面文案","segments":["第一段","第二段","第三段"],"notes":"识别不确定之处的简短说明"}
-没有可读文案时输出：{"detected":false,"text":"","segments":[],"notes":"没有清晰可读的画面文字"}`;
+async function detectSceneTimes(input) {
+  try {
+    const { stderr } = await runCommand('ffmpeg', [
+      '-hide_banner', '-i', input,
+      '-vf', "select='gt(scene,0.28)',showinfo",
+      '-vsync', 'vfr', '-f', 'null', '-',
+    ], 180000);
+    return [...String(stderr).matchAll(/pts_time:([0-9]+(?:\.[0-9]+)?)/g)]
+      .map((match) => Number(match[1]))
+      .filter((value) => Number.isFinite(value));
+  } catch {
+    return [];
+  }
 }
 
-/** 口播转写失败后的画面文字回退：8 帧拼图交给多模态 TEXT 通道识别。 */
+/** 口播失败后的画面文字回退：场景变化优先抽帧，不足时均匀补足，最多 12 帧。 */
 async function extractVisualTextFromAsset(assetRow, providedBuffer = null) {
-  if (!assetRow || !/^video\//.test(String(assetRow.mime_type || ''))) return { text: '', segments: [], duration: 0 };
-  if (await textProviderIsMock().catch(() => false)) return { text: '', segments: [], duration: 0 };
+  if (!assetRow || !/^video\//.test(String(assetRow.mime_type || ''))) return { text: '', segments: [], duration: 0, frameCount: 0, frameStrategy: 'uniform' };
+  if (await textProviderIsMock().catch(() => false)) return { text: '', segments: [], duration: 0, frameCount: 0, frameStrategy: 'uniform' };
   const buffer = providedBuffer || await assetBytes(assetRow);
   if (!buffer.length) throw new Error('视频文件是空的');
   if (buffer.length > 200 * 1024 * 1024) throw new Error('视频超过 200MB，暂时无法提取画面文字');
@@ -2660,39 +2654,52 @@ async function extractVisualTextFromAsset(assetRow, providedBuffer = null) {
   try {
     dir = await mkdtemp(path.join(os.tmpdir(), 'jw-visual-transcript-'));
     const input = path.join(dir, `input${path.extname(String(assetRow.file_name || '')).slice(0, 8) || '.mp4'}`);
-    const output = path.join(dir, 'contact-sheet.jpg');
     await writeFile(input, buffer);
     const duration = await probeVideoDuration(input);
-    const rate = duration > 0.5 ? Math.min(2, Math.max(0.05, 8 / duration)) : 1;
+    const sceneTimes = await detectSceneTimes(input);
+    const frameStrategy = visualFrameStrategy(sceneTimes);
+    const sampleTimes = selectSceneSampleTimes({ sceneTimes, duration, maxSamples: 12 });
+    const frames = [];
+    for (const time of sampleTimes) {
+      const outPath = path.join(dir, `frame-${String(frames.length + 1).padStart(3, '0')}.jpg`);
+      try {
+        await runCommand('ffmpeg', [
+          '-y', '-ss', Number(time).toFixed(3), '-i', input,
+          '-frames:v', '1', '-vf', 'scale=600:-2:force_original_aspect_ratio=decrease', '-q:v', '4', outPath,
+        ], 120000);
+        const frame = await readFile(outPath);
+        if (frame.length) frames.push({ time, path: outPath });
+      } catch { /* 单帧失败时继续，不阻断整条素材 */ }
+    }
+    if (!frames.length) throw new Error('没有抽取到视频画面');
+    const contactSheet = path.join(dir, 'contact-sheet.jpg');
     await runCommand('ffmpeg', [
-      '-y', '-i', input,
-      '-vf', `fps=${rate.toFixed(6)},scale=600:-2:force_original_aspect_ratio=decrease,tile=4x2:padding=6:margin=6`,
-      '-frames:v', '1', '-q:v', '4', output,
-    ], 180000);
-    const frameBuffer = await readFile(output);
-    if (!frameBuffer.length) throw new Error('没有抽取到视频画面');
+      '-y', '-framerate', '1', '-i', path.join(dir, 'frame-%03d.jpg'),
+      '-vf', 'tile=4x3:padding=6:margin=6', '-frames:v', '1', '-q:v', '4', contactSheet,
+    ], 120000);
+    const frameBuffer = await readFile(contactSheet);
+    if (!frameBuffer.length) throw new Error('画面拼图生成失败');
     const dataUrl = `data:image/jpeg;base64,${frameBuffer.toString('base64')}`;
     const result = await collectText(null, {
       system: WORKBENCH_SYSTEM,
       messages: [{ role: 'user', content: [
-        { type: 'text', text: buildVisualTranscriptPrompt(duration) },
+        { type: 'text', text: buildVisualTranscriptPrompt({ duration, frameCount: frames.length, frameStrategy }) },
         { type: 'image_url', image_url: { url: dataUrl } },
       ] }],
     });
     const parsed = firstJsonObject(result.text) || {};
-    if (parsed.detected === false) return { text: '', segments: [], duration };
+    if (parsed.detected === false) return { text: '', segments: [], duration, frameCount: frames.length, frameStrategy };
     const text = String(parsed.text || '').trim().slice(0, 4000);
     const segments = (Array.isArray(parsed.segments) ? parsed.segments : [])
       .map((item) => String(item?.text || item || '').trim())
       .filter(Boolean)
       .slice(0, 30);
-    if (text.length < 6) return { text: '', segments: [], duration };
-    return { text, segments: segments.length ? segments : [text], duration, notes: String(parsed.notes || '').slice(0, 300) };
+    if (text.length < 6) return { text: '', segments: [], duration, frameCount: frames.length, frameStrategy };
+    return { text, segments: segments.length ? segments : [text], duration, frameCount: frames.length, frameStrategy, notes: String(parsed.notes || '').slice(0, 300) };
   } finally {
     if (dir) await rm(dir, { recursive: true, force: true }).catch(() => {});
   }
 }
-
 const TRANSCRIPT_MODES = new Set(['auto', 'speech', 'visual', 'both']);
 function normalizeTranscriptMode(value) {
   const mode = String(value || '').trim().toLowerCase();
@@ -2710,7 +2717,7 @@ function transcriptSourceFromSegments(segments) {
 function composeTranscriptResult(speech, visual) {
   const parts = [];
   if (speech?.text?.trim()) parts.push({ source: 'speech', text: speech.text.trim(), segments: speech.segments || [], duration: Number(speech.duration) || 0 });
-  if (visual?.text?.trim()) parts.push({ source: 'visual', text: visual.text.trim(), segments: (visual.segments || []).map((item, index) => ({ start: index * 3, end: index * 3 + 3, text: String(item), source: 'visual' })), duration: Number(visual.duration) || 0 });
+  if (visual?.text?.trim()) parts.push({ source: 'visual', text: visual.text.trim(), segments: (visual.segments || []).map((item, index) => ({ start: index * 3, end: index * 3 + 3, text: String(item), source: 'visual', frameCount: Number(visual.frameCount) || 0, frameStrategy: visual.frameStrategy || 'uniform' })), duration: Number(visual.duration) || 0 });
   if (!parts.length) return { text: '', segments: [], duration: 0, source: '' };
   const text = parts.length > 1
     ? parts.map((part) => `【${part.source === 'speech' ? '口播' : '画面文字'}】\n${part.text}`).join('\n\n')
@@ -4583,7 +4590,8 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
         let transcriptSegments = [];
         try { transcriptSegments = JSON.parse(tsRow.segments || '[]'); } catch { transcriptSegments = []; }
         const transcriptSource = transcriptSourceFromSegments(transcriptSegments);
-        const nextState = { ...st, transcript: transcriptText.slice(0, 4000), transcriptNickname: tsRow.nickname || '', transcriptSource, transcriptSources: [...new Set(transcriptSegments.map((segment) => segment?.source || 'speech'))], transcriptSegments: transcriptSegments.slice(0, 200), message: '' };
+        const visualMeta = transcriptSegments.find((segment) => segment?.source === 'visual' && segment?.frameCount);
+        const nextState = { ...st, transcript: transcriptText.slice(0, 4000), transcriptNickname: tsRow.nickname || '', transcriptSource, transcriptSources: [...new Set(transcriptSegments.map((segment) => segment?.source || 'speech'))], transcriptSegments: transcriptSegments.slice(0, 200), visualMeta: visualMeta ? { frameCount: Number(visualMeta.frameCount) || 0, frameStrategy: visualMeta.frameStrategy || 'uniform' } : null, message: '' };
         await wfUpdate(row.id, owner.key, { stage: 'transcript', state: JSON.stringify(nextState) });
         row.stage = 'transcript';
         row.state = JSON.stringify(nextState);

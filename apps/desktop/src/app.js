@@ -519,10 +519,13 @@ function renderWorkflowCard() {
     const transcriptSource = stateData.transcriptSource || 'speech';
     const visualTranscript = transcriptSource === 'visual';
     const mixedTranscript = transcriptSource === 'mixed';
+    const visualMeta = stateData.visualMeta && Number(stateData.visualMeta.frameCount) > 0
+      ? `本次使用${stateData.visualMeta.frameStrategy === 'scene' ? '场景变化关键帧' : '均匀采样帧'}抽取 ${Number(stateData.visualMeta.frameCount)} 帧。`
+      : '';
     const sourceNotice = mixedTranscript
-      ? '<div class="workflow-warning"><b>这是口播 + 画面文字合并稿</b><p>口播和画面文字分别标注了来源。请核对重复或冲突内容，必要时直接修改，再进入拆解改写。</p></div>'
+      ? `<div class="workflow-warning"><b>这是口播 + 画面文字合并稿</b><p>口播和画面文字分别标注了来源。请核对重复或冲突内容，必要时直接修改，再进入拆解改写。${escapeHtml(visualMeta)}</p></div>`
       : visualTranscript
-        ? '<div class="workflow-warning"><b>这是画面文字，不是口播转写</b><p>系统没有识别到清晰人声，已自动读取视频画面里的文字。请先核对，必要时直接修改，再进入拆解改写。</p></div>'
+        ? `<div class="workflow-warning"><b>这是画面文字，不是口播转写</b><p>系统没有识别到清晰人声，已自动读取视频画面里的文字。${escapeHtml(visualMeta)}请先核对，必要时直接修改，再进入拆解改写。</p></div>`
         : '';
     const transcriptLabel = mixedTranscript ? '确认口播 + 画面文字合并稿' : visualTranscript ? '确认画面文字' : '确认提取到的原文';
     body = `${sourceNotice}${workflowTranscriptModeControl(stateData)}<label class="production-field full"><span>${transcriptLabel}</span><textarea id="workflow-transcript" rows="10" maxlength="4000">${escapeHtml(stateData.transcript || '')}</textarea></label><div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-copy-transcript">复制原文</button><button type="button" class="btn primary small" data-action="workflow-confirm-transcript" ${state.workflowBusy ? 'disabled' : ''}>确认原文，拆解改写方案 →</button></div>`;
