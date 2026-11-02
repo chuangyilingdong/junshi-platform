@@ -38,6 +38,8 @@ JUNSHI_ALERT_WEBHOOK_FORMAT=generic|feishu
 
 仓库只保存占位，不包含真实 Webhook。
 
+配置、权限、真实投递验证和故障行为见 `STAGE-D-ALERT-WEBHOOK.md`。
+
 ## 运行周期
 
 - 开机 2 分钟后首次运行

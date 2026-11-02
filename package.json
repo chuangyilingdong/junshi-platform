@@ -17,6 +17,7 @@
     "check:shared-mysql": "node scripts/check-shared-mysql.mjs",
     "smoke:api-independent": "node scripts/smoke-independent-api.mjs",
     "test:deploy": "node scripts/verify-deploy-templates.mjs",
+    "test:healthcheck": "node --test scripts/test/alert-webhook.test.mjs",
     "smoke:provider-text": "node scripts/smoke-real-text-provider.mjs"
   },
   "engines": {
