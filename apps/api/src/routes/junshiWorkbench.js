@@ -80,6 +80,7 @@ import {
   buildTodayIdeasPrompt,
   buildVideoPrompt,
   buildViralOnePrompt,
+  buildViralPlanPrompt,
   buildViralRewritePrompt,
   buildCyclePlanPrompt,
   buildCycleSlotPrompt,
@@ -103,6 +104,7 @@ import {
   demoPickedHotspots,
   demoVideo,
   demoViralOne,
+  demoViralPlans,
   demoViralRewrites,
   videoHookLabel,
   videoTypeLabel,
@@ -3414,7 +3416,7 @@ export async function handleJunshiWorkbench(ctx, rest = '/', search = new URLSea
 const WORKFLOW_KINDS = { today: '今日选题', viral: '爆款复刻', hotspot: '热点结合' };
 const WORKFLOW_STAGE_LABELS = {
   idea: '选选题', style: '选表达', copy: '选版本', done: '完成',
-  transcript: '确认原文', strength: '选改造强度', angle: '选结合方式',
+  transcript: '确认原文', planning: '拆解方案中', rewrite_plan: '选改写方案', plan_failed: '方案生成失败', strength: '选改造强度', angle: '选结合方式',
   searching: '联网搜索中', hotspots_ready: '选热点', search_failed: '搜索失败',
   extracting: '提取原文', extract_failed: '提取失败',
   brain: '选写作大脑', rewriting: '改写中', ready: '选版本',
@@ -3591,6 +3593,77 @@ async function wfBrainBlock(ownerKey, state) {
   return `\n【写作大脑「${row.name}」（只借方法与节奏，不模仿原作者身份）】\n${lines.join('\n')}\n`;
 }
 
+function normalizeViralPlanPayload(parsed) {
+  const sourceAnalysis = parsed?.sourceAnalysis && typeof parsed.sourceAnalysis === 'object' ? parsed.sourceAnalysis : {};
+  const rawPlans = Array.isArray(parsed?.plans) ? parsed.plans : Array.isArray(parsed) ? parsed : [];
+  const plans = rawPlans.slice(0, 3).map((item, index) => ({
+    id: text(item?.id) || `p${index + 1}`,
+    title: text(item?.title).slice(0, 40) || `改写方案 ${index + 1}`,
+    strategy: text(item?.strategy).slice(0, 500),
+    sourceMechanism: text(item?.sourceMechanism).slice(0, 800),
+    targetBridge: text(item?.targetBridge).slice(0, 800),
+    thesis: text(item?.thesis).slice(0, 300),
+    beats: (Array.isArray(item?.beats) ? item.beats : []).map((beat) => text(beat).slice(0, 300)).filter(Boolean).slice(0, 8),
+    evidence: (Array.isArray(item?.evidence) ? item.evidence : []).map((evidence) => text(evidence).slice(0, 300)).filter(Boolean).slice(0, 8),
+    avoid: text(item?.avoid).slice(0, 500),
+  })).filter((item) => item.sourceMechanism || item.targetBridge || item.thesis);
+  if (!plans.length) throw new Error('没有生成出可用的改写方案');
+  return { sourceAnalysis, plans };
+}
+
+/** 爆款复刻第二步：先拆原文机制，产出 3 套可选择的改写方案。 */
+async function runWfPlans(ctx, owner, wfId, job = null) {
+  const row = await arow('SELECT * FROM junshi_workbench_workflows WHERE id=? AND owner_key=?', [wfId, owner.key]);
+  if (!row) return;
+  const wf = wfOut(row);
+  const state = { ...wf.state };
+  try {
+    const profileData = (await readProfile(owner.key, wf.accountId)).profile;
+    const orgProfileTextValue = await orgProfileText(owner.key);
+    const providerMock = await textProviderIsMock().catch(() => false);
+    let payload;
+    if (providerMock) {
+      payload = demoViralPlans(profileData, state.transcript, state.strength || 'medium');
+    } else {
+      const result = await collectText(ctx, {
+        system: WORKBENCH_SYSTEM,
+        user: buildViralPlanPrompt({
+          profile: profileData,
+          orgProfile: orgProfileTextValue,
+          sourceText: state.transcript,
+          strength: state.strength || 'medium',
+        }),
+      });
+      if (mockOrEmpty(result)) throw new Error('这次没有生成出改写方案');
+      const parsedObject = parseLooseJsonObject(result.text);
+      const parsedArray = parseLooseJsonArray(result.text);
+      payload = normalizeViralPlanPayload(parsedObject || parsedArray || {});
+    }
+    payload = normalizeViralPlanPayload(payload);
+    state.sourceAnalysis = payload.sourceAnalysis;
+    state.planOptions = payload.plans;
+    state.selectedPlan = null;
+    state.copyOptions = [];
+    state.blueprint = null;
+    state.message = '';
+    await wfUpdate(wfId, owner.key, { stage: 'rewrite_plan', error: '', state: JSON.stringify(state) });
+    if (job) await jobDone(job, 'succeeded', `已生成 ${payload.plans.length} 套改写方案`).catch(() => {});
+  } catch (error) {
+    const message = String(error?.message || error).slice(0, 1000);
+    await wfUpdate(wfId, owner.key, {
+      stage: 'plan_failed',
+      error: message,
+      state: JSON.stringify({ ...state, message: `改写方案生成失败：${message}` }),
+    }).catch(() => {});
+    if (job) await jobDone(job, 'failed', message).catch(() => {});
+  }
+}
+
+function startWfPlans(ctx, owner, wfId, job = null) {
+  void runWfPlans(ctx, owner, wfId, job).catch((error) => {
+    console.warn('[junshi workbench] 改写方案生成失败：', error?.message || error);
+  });
+}
 /** 逐版本生成并即时落库（对齐原版 stream_options 的「先完成先展示」）。 */
 async function runWfCopy(ctx, owner, wfId) {
   const row = await arow('SELECT * FROM junshi_workbench_workflows WHERE id=? AND owner_key=?', [wfId, owner.key]);
@@ -3607,7 +3680,7 @@ async function runWfCopy(ctx, owner, wfId) {
       let option = null;
       if (providerMock) {
         option = wf.kind === 'viral'
-          ? demoViralOne(profileData, state.transcript, state.strength || 'medium', index)
+          ? demoViralOne(profileData, state.transcript, state.strength || 'medium', index, state.selectedPlan || null)
           : (() => {
               const idea = state.selectedIdea || {};
               const hotspot = wf.kind === 'today' ? { title: idea.title || '', fact: `选题：${idea.title || ''}。钩子：${idea.hook || ''}` } : (state.hotspot || {});
@@ -3618,7 +3691,7 @@ async function runWfCopy(ctx, owner, wfId) {
       } else {
         let prompt;
         if (wf.kind === 'viral') {
-          prompt = buildViralOnePrompt({ profile: profileData, orgProfile: orgProfileTextValue, sourceText: state.transcript, strength: state.strength || 'medium', index });
+          prompt = buildViralOnePrompt({ profile: profileData, orgProfile: orgProfileTextValue, sourceText: state.transcript, strength: state.strength || 'medium', plan: state.selectedPlan || null, index });
         } else {
           const idea = state.selectedIdea || {};
           const hotspot = wf.kind === 'today'
@@ -4524,9 +4597,43 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
       const transcript = text(ctx.body?.text).slice(0, 4000);
       if (!transcript) throw errors.badRequest('原文不能为空', 'VALIDATION_ERROR', { field: 'text' });
       state.transcript = transcript;
-      // 对齐原版：确认后自动进入改写，不需要再选强度/风格；蓝图与 3 版本流式产出。
-      await wfUpdate(wfId, owner.key, { stage: 'rewriting', state: JSON.stringify({ ...state, copyOptions: [], blueprint: null, message: '正在拆解爆款结构并结合账号资料改写 3 个版本…' }) });
-      startWfCopy(ctx, owner, wfId);
+      if (ctx.body?.rewritePlan === true) {
+        state.strength = state.strength || 'medium';
+        state.planOptions = [];
+        state.selectedPlan = null;
+        state.copyOptions = [];
+        state.blueprint = null;
+        rateLimit(owner.key);
+        const job = jobStart(owner, '爆款复刻', '拆解原文并设计改写方案');
+        await job.promise;
+        await wfUpdate(wfId, owner.key, { stage: 'planning', error: '', state: JSON.stringify({ ...state, message: '正在拆解爆款机制，并设计 3 套改写方案…' }) });
+        startWfPlans(ctx, owner, wfId, job);
+      } else {
+        // 0.6.2 及以前客户端兼容：没有 rewritePlan 标记时保留原有直写流程。
+        await wfUpdate(wfId, owner.key, { stage: 'rewriting', error: '', state: JSON.stringify({ ...state, copyOptions: [], blueprint: null, message: '正在拆解爆款结构并结合账号资料改写 3 个版本…' }) });
+        startWfCopy(ctx, owner, wfId);
+      }    } else if (action === 'select_rewrite_plan' && wf.kind === 'viral' && wf.stage === 'rewrite_plan') {
+      const plan = (state.planOptions || []).find((item) => item.id === text(ctx.body?.planId));
+      if (!plan) throw errors.badRequest('改写方案不存在', 'VALIDATION_ERROR', { field: 'planId' });
+      state.selectedPlan = plan;
+      state.copyOptions = [];
+      state.blueprint = null;
+      rateLimit(owner.key);
+      const job = jobStart(owner, wf.kindLabel, `${plan.title || '改写方案'} · 3 个版本`);
+      await job.promise;
+      await wfUpdate(wfId, owner.key, { stage: 'rewriting', error: '', state: JSON.stringify({ ...state, message: `正在按「${plan.title || '已选方案'}」写 3 个版本…` }) });
+      startWfCopy(ctx, owner, wfId, job);
+    } else if (action === 'regenerate_plans' && wf.kind === 'viral' && ['rewrite_plan', 'plan_failed'].includes(wf.stage)) {
+      rateLimit(owner.key);
+      const job = jobStart(owner, wf.kindLabel, '重新生成改写方案');
+      await job.promise;
+      await wfUpdate(wfId, owner.key, { stage: 'planning', error: '', state: JSON.stringify({ ...state, planOptions: [], selectedPlan: null, copyOptions: [], blueprint: null, message: '正在重新拆解爆款机制并设计改写方案…' }) });
+      startWfPlans(ctx, owner, wfId, job);
+    } else if (action === 'reselect_rewrite_plan' && wf.kind === 'viral' && ['copy', 'ready', 'failed'].includes(wf.stage)) {
+      state.selectedPlan = null;
+      state.copyOptions = [];
+      state.blueprint = null;
+      await wfUpdate(wfId, owner.key, { stage: 'rewrite_plan', error: '', state: JSON.stringify({ ...state, message: '重新选择一套改写方案，再生成版本。' }) });
     } else if (action === 'select_brain' && wf.stage === 'brain') {
       const brainId = text(ctx.body?.brainId);
       const style = text(ctx.body?.style) || '口语化';

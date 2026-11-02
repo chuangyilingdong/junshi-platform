@@ -573,21 +573,22 @@ export function demoPickedHotspots(keyword) {
 
 /* ───────────── 六期：对齐原版交互逻辑（2026-10-25） ───────────── */
 
-/** 爆款复刻·单版本生成（流式预览用：一次一个版本，完成即推送）。首个版本同时产出复刻蓝图。 */
-export function buildViralOnePrompt({ profile, orgProfile, sourceText, strength, index }) {
-  const rule = { low: '低强度：只借鉴选题机制，结构与表达全部重建。', medium: '中强度：借鉴冲突与信息递进，换主题、证据、表达与镜头。', high: '高强度：尽量保留传播机制和节奏，但不复用原句、原素材或一一对应镜头。' }[strength] || '';
-  const indexRule = index === 1
-    ? '第 1 个版本走「最稳」的改写：结构清晰、信息密度高。'
-    : index === 2
-      ? '第 2 个版本换一个切入角度（与第 1 个明显不同）。'
-      : '第 3 个版本走最大胆的改写：反转或反常识开场。';
-  return `【任务】参考下面这条爆款原文，为这个内容账号产出第 ${index} 个合规改写版本。${indexRule}
+/** 爆款复刻·先拆机制，再给 3 套可选择的改写方案。 */
+export function buildViralPlanPrompt({ profile, orgProfile, sourceText, strength }) {
+  const rule = { low: '低强度：只借鉴选题机制，结构与表达全部重建。', medium: '中强度：借鉴冲突与信息递进，换主题、证据、表达与镜头。', high: '高强度：尽量保留传播机制和节奏，但不复用原句、原素材或一一对应镜头。' }[strength] || '中强度：借鉴冲突与信息递进，换主题、证据、表达与镜头。';
+  return `【任务】先拆解下面这条爆款，再给这个内容账号设计 3 套可选择的改写方案。现在不要写正文。
 
-【铁律】只学习传播机制，不复用原钩子、原案例、原画面或原音频；不出现「保证」「第一」「最」等绝对化用语；不承诺流量、收益、提分或效果。
+【铁律】
+1. 只迁移传播机制、推理链和节奏，不复用原钩子、原案例、原数字、原人物或原句。
+2. 必须先判断原文真正靠什么成立：是商业拆解、信息差、冲突反转、身份共鸣，还是问题解决。
+3. 每套方案都必须明确写出「原爆款机制 → 本账号业务的对应关系」，不能只给“口语化/更有冲突”这类抽象风格。
+4. 不得改写成与本账号无关的行业通用文；不能让主题完全跳走。
+5. 不出现「保证」「第一」「最」等绝对化用语；不承诺流量、收益、提分或效果。
+
 【改造强度】${rule}
 
-【爆款原文（只作机制参考）】
-${String(sourceText || '').slice(0, 3000)}
+【爆款原文】
+${String(sourceText || '').slice(0, 4000)}
 
 【机构画像】
 ${orgProfile || '（未填写）'}
@@ -595,17 +596,88 @@ ${orgProfile || '（未填写）'}
 【内容账号档案】
 ${workbenchProfileBlock(profile)}
 
-【输出】${index === 1 ? `只输出一个 JSON 对象（蓝图与版本合一，不要拆成两个）：{"blueprint":{"hook":"这条爆款的开头机制（一句话）","progression":["信息推进1","信息推进2"],"turn":"转折（一句话）","closing":"收束（一句话）"},"title":"标题（20字内）","content":"完整口播（180-320 字，符合铁律与强度）"}` : `只输出一个 JSON 对象：{"title":"标题（20字内）","content":"完整口播（180-320 字，符合铁律与强度）"}`}。不要输出任何其他文字或代码围栏。`;
+【输出】只输出一个 JSON 对象，不要解释或代码围栏：
+{"sourceAnalysis":{"coreQuestion":"原文真正回答的问题","hookMechanism":"开场如何抓住人","logicChain":["信息推进1","信息推进2","信息推进3"],"turn":"转折/反转","closing":"如何收束","mustReplace":["必须换掉的原行业事实1","必须换掉的原行业事实2"]},"plans":[{"id":"p1","title":"方案名（16字内）","strategy":"这套方案保留什么、换掉什么","sourceMechanism":"从原文抽出的可迁移机制","targetBridge":"映射到本账号业务的具体桥梁","thesis":"改写后要证明的一句话","beats":["段落1","段落2","段落3","段落4"],"evidence":["可使用的账号资料/事实1","可使用的账号资料/事实2"],"avoid":"这套方案最容易写偏的地方"}]}
+plans 必须正好 3 个，而且三套方案要有明显差异。`;
 }
 
-export function demoViralOne(profile, sourceText, strength, index) {
+/** mock 模式下的改写方案，也遵守“先机制、后迁移”。 */
+export function demoViralPlans(profile, sourceText, strength) {
+  const subject = subjectOf(profile);
+  const audience = audienceOf(profile);
+  return {
+    sourceAnalysis: {
+      coreQuestion: '这件事表面上在讲什么，真正的价值或赚钱逻辑又在哪里？',
+      hookMechanism: '先抛出一个看似普通的现象，再提示背后有大多数人没看到的结构。',
+      logicChain: ['先给表面答案', '指出表面答案不完整', '拆出多层结构', '把结论落回受众决策'],
+      turn: '从“看热闹”转到“看结构和代价”。',
+      closing: '给受众一个判断标准或下一步动作。',
+      mustReplace: ['原行业的人物和事件', '原行业的收入项目与数字', '原句和原案例'],
+    },
+    plans: [
+      { id: 'p1', title: '保留商业拆解链', strategy: '保留“表面收入→真正结构”的推理，换成账号自己的业务链。', sourceMechanism: '先承认表面答案，再逐层拆出隐藏的收入或价值结构。', targetBridge: `把原文的多层结构映射到${subject}的真实经营环节，而不是泛泛谈${audience}焦虑。`, thesis: `${subject}的关键不在表面价格，而在背后的完整交付与价值结构。`, beats: ['先说出大家最容易看到的表面答案', '指出只盯表面会漏掉什么', '拆出本账号业务的三层结构', '回到受众该如何判断'], evidence: ['账号课程与交付信息', '机构真实服务流程'], avoid: '不要复制原行业的具体收费项目或数字。' },
+      { id: 'p2', title: '保留反差冲突', strategy: '保留“以为是这样，其实不是”的反差，换成本账号受众的场景。', sourceMechanism: '用常识判断和真实结构之间的反差制造停留。', targetBridge: `把${audience}最常见的判断误区，与${subject}的真实交付逻辑形成对照。`, thesis: `看起来最直接的选择，未必是对${audience}最有利的选择。`, beats: ['先复述常见误区', '用具体场景制造反差', '解释反差背后的原因', '给出更可靠的判断方法'], evidence: ['家长真实提问', '课程体验与交付细节'], avoid: '不要为了反差夸大行业问题。' },
+      { id: 'p3', title: '换受众视角重述', strategy: '保留原文的推理顺序，把讲述者从行业观察者换成本账号受众。', sourceMechanism: '把复杂结构翻译成受众能立即使用的判断标准。', targetBridge: `从${audience}的决策过程出发，重讲原文的同一套逻辑。`, thesis: `看懂${subject}的结构，才知道钱和精力该花在哪里。`, beats: ['从受众正在纠结的问题开场', '拆出他看不到的隐藏成本或价值', '解释每一项对结果的影响', '给出下一次决策的检查清单'], evidence: ['常见异议与决策节点', '机构可验证的服务承诺'], avoid: '不要变成产品推销清单。' },
+    ],
+  };
+}
+/** 爆款复刻·单版本生成（流式预览用：一次一个版本，完成即推送）。首个版本同时产出复刻蓝图。 */
+export function buildViralOnePrompt({ profile, orgProfile, sourceText, strength, plan, index }) {
+  const rule = { low: '低强度：只借鉴选题机制，结构与表达全部重建。', medium: '中强度：借鉴冲突与信息递进，换主题、证据、表达与镜头。', high: '高强度：尽量保留传播机制和节奏，但不复用原句、原素材或一一对应镜头。' }[strength] || '中强度：借鉴冲突与信息递进，换主题、证据、表达与镜头。';
+  const indexRule = index === 1
+    ? '第 1 个版本要最忠实地执行方案，信息链清楚，读完能复述原文的推理逻辑。'
+    : index === 2
+      ? '第 2 个版本沿用同一方案，但换一个更有冲突感的开场和更短的句子；不能换主题。'
+      : '第 3 个版本沿用同一方案，用更反常识的开场制造停留；不能换成另一套逻辑。';
+  const planBlock = plan
+    ? `【已经选定的改写方案（必须执行）】\n${JSON.stringify(plan, null, 2)}`
+    : '【改写方案】未单独提供，请先从原文抽出可迁移机制，再映射到本账号业务，禁止写成行业通用模板。';
+  return `【任务】严格按照已经选定的改写方案，为这个内容账号写出第 ${index} 个版本。${indexRule}
+
+【铁律】
+1. 只迁移传播机制、推理链和节奏，不复用原钩子、原案例、原数字、原人物或原句。
+2. 正文必须能看出「原爆款机制 → 本账号业务」的对应关系，不能绕过 targetBridge 直接写账号行业常识。
+3. 三个版本必须共用同一个 selectedPlan；只改变开场、语气、句式和节奏，不能改主题或逻辑。
+4. 文案至少要覆盖 selectedPlan.beats 的主要推进步骤；标题必须体现 selectedPlan.thesis。
+5. 不出现「保证」「第一」「最」等绝对化用语；不承诺流量、收益、提分或效果。
+
+【改造强度】${rule}
+
+【爆款原文（只作机制证据，不得照抄事实）】
+${String(sourceText || '').slice(0, 4000)}
+
+${planBlock}
+
+【机构画像】
+${orgProfile || '（未填写）'}
+
+【内容账号档案】
+${workbenchProfileBlock(profile)}
+
+【输出】只输出一个 JSON 对象，不要输出解释或代码围栏：
+{"title":"标题（20字内，必须体现方案 thesis）","content":"完整口播（180-320 字，按方案 beats 推进）"}`;
+}
+export function demoViralOne(profile, sourceText, strength, index, plan = null) {
   const base = demoViralRewrites(profile, sourceText, strength);
   const item = base[(index - 1) % base.length];
-  return index === 1
-    ? { blueprint: { hook: '用一个反常识判断打断划走', progression: ['现象：家长的普遍焦虑', '冲突：报得多的孩子未必学得好'], turn: '把决定权从价格转回需求', closing: '给出一个低门槛动作' }, ...item }
-    : item;
+  if (!plan) {
+    return index === 1
+      ? { blueprint: { hook: '用一个反常识判断打断划走', progression: ['现象：受众的普遍焦虑', '冲突：最直接的选择未必有效'], turn: '把决定权从价格转回真实需求', closing: '给出一个低门槛动作' }, ...item }
+      : item;
+  }
+  const beats = (plan.beats || []).map((beat, beatIndex) => `${beatIndex + 1}. ${beat}`).join('\n');
+  const bridge = plan.targetBridge || plan.thesis || '';
+  return {
+    blueprint: {
+      hook: plan.sourceMechanism || '先抛出现象再揭示背后结构',
+      progression: Array.isArray(plan.beats) ? plan.beats.slice(0, 4) : [],
+      turn: plan.thesis || '',
+      closing: plan.avoid || '给出可执行的判断标准',
+    },
+    title: String(plan.thesis || plan.title || `方案${index}`).slice(0, 20),
+    content: `先说结论：${plan.thesis || plan.title || '这条内容不是泛泛讲道理。'}\n${bridge}\n${beats}\n这套结构来自原文的推理方式，但案例、事实和表达已经换成这个账号自己的内容。\n结尾给受众一个能马上使用的判断标准，不承诺效果。`,
+  };
 }
-
 /** 文案大脑蒸馏：从带时间码的转写档案提炼方法档案。 */
 export function buildBrainDistillPrompt({ name, transcripts }) {
   const corpus = transcripts.map((item, index) => {

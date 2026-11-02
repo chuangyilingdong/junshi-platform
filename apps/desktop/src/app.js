@@ -382,10 +382,10 @@ function workflowStageSteps(kind, stage) {
   const steps = kind === 'today'
     ? [['idea', '选选题'], ['brain', '选写法'], ['rewriting', '写文案'], ['done', '完成']]
     : kind === 'viral'
-      ? [['transcript', '确认原文'], ['rewriting', '改写文案'], ['done', '完成']]
+      ? [['transcript', '确认原文'], ['rewrite_plan', '选改写方案'], ['rewriting', '写版本'], ['done', '完成']]
       : [['searching', '找热点'], ['angle', '选角度'], ['brain', '选写法'], ['done', '完成']];
   const aliases = kind === 'viral'
-    ? { extracting: 'transcript', extract_failed: 'transcript', copy: 'rewriting', ready: 'rewriting', failed: 'rewriting' }
+    ? { extracting: 'transcript', extract_failed: 'transcript', planning: 'rewrite_plan', rewrite_plan: 'rewrite_plan', plan_failed: 'rewrite_plan', copy: 'rewriting', ready: 'rewriting', failed: 'rewriting' }
     : kind === 'hotspot'
       ? { search_failed: 'searching', hotspots_ready: 'searching', rewriting: 'brain', copy: 'brain', ready: 'brain', failed: 'brain' }
       : { copy: 'rewriting', ready: 'rewriting', failed: 'rewriting' };
@@ -440,6 +440,41 @@ function workflowOptionCards(wf, options, idea = false) {
     : `<article class="workflow-option copy"><div class="workflow-copy-title"><b>${escapeHtml(option.title || `版本 ${index + 1}`)}</b>${option.hook ? `<small>${escapeHtml(option.hook)}</small>` : ''}</div><div class="workflow-copy-content">${escapeHtml(option.content || '')}</div><button type="button" class="btn primary small" data-action="workflow-select-copy" data-option-id="${escapeHtml(option.id)}"${copySelectable ? '' : ' disabled'}>${copySelectable ? '用这个版本' : '生成中…'}</button></article>`).join('')}</div>`;
 }
 
+function workflowSourceAnalysisBlock(analysis) {
+  const data = analysis && typeof analysis === 'object' ? analysis : {};
+  const chain = Array.isArray(data.logicChain) ? data.logicChain.filter(Boolean) : [];
+  return `<section class="workflow-plan-analysis">
+    <div><span>原文核心问题</span><b>${escapeHtml(data.coreQuestion || '先把原文真正回答的问题说清楚')}</b></div>
+    <div><span>可迁移机制</span><b>${escapeHtml(data.hookMechanism || '找出原文靠什么推进和成立')}</b></div>
+    ${chain.length ? `<ol>${chain.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ol>` : ''}
+    ${Array.isArray(data.mustReplace) && data.mustReplace.length ? `<small>必须换掉：${data.mustReplace.map((item) => escapeHtml(item)).join('、')}</small>` : ''}
+  </section>`;
+}
+
+function workflowPlanCards(plans) {
+  if (!Array.isArray(plans) || !plans.length) return '<div class="workflow-loading"><span class="spinner"></span><b>正在设计改写方案…</b></div>';
+  return `<div class="workflow-plan-list">${plans.map((plan, index) => `<article class="workflow-plan-card">
+    <span class="workflow-option-index">0${index + 1}</span>
+    <div class="workflow-plan-main">
+      <div class="workflow-plan-title"><b>${escapeHtml(plan.title || `改写方案 ${index + 1}`)}</b><em>${escapeHtml(plan.strategy || '')}</em></div>
+      <p><strong>保留机制</strong>${escapeHtml(plan.sourceMechanism || '')}</p>
+      <p><strong>迁移到本账号</strong>${escapeHtml(plan.targetBridge || '')}</p>
+      <p><strong>要证明</strong>${escapeHtml(plan.thesis || '')}</p>
+      ${Array.isArray(plan.beats) && plan.beats.length ? `<ol class="workflow-plan-beats">${plan.beats.map((beat) => `<li>${escapeHtml(beat)}</li>`).join('')}</ol>` : ''}
+      ${plan.avoid ? `<small>最容易写偏：${escapeHtml(plan.avoid)}</small>` : ''}
+    </div>
+    <button type="button" class="btn primary small" data-action="workflow-select-plan" data-plan-id="${escapeHtml(plan.id)}">用这个方案写 3 版</button>
+  </article>`).join('')}</div>`;
+}
+
+function workflowPlanSummary(plan) {
+  if (!plan || typeof plan !== 'object') return '';
+  return `<section class="workflow-plan-summary">
+    <div><span>当前改写方案</span><b>${escapeHtml(plan.title || '已选方案')}</b><p>${escapeHtml(plan.sourceMechanism || '')}</p></div>
+    <div><span>业务桥梁</span><b>${escapeHtml(plan.targetBridge || '')}</b><p>${escapeHtml(plan.thesis || '')}</p></div>
+    <button type="button" class="btn ghost small" data-action="workflow-reselect-plan">重选方案</button>
+  </section>`;
+}
 function renderWorkflowCard() {
   const wf = state.workflow;
   if (!wf) return '';
@@ -450,7 +485,13 @@ function renderWorkflowCard() {
   } else if (wf.stage === 'extract_failed' || wf.stage === 'search_failed') {
     body = `<div class="workflow-error"><b>${wf.stage === 'search_failed' ? '热点搜索没有完成' : '参考原文提取失败'}</b><p>${escapeHtml(stateData.extractError || wf.error || '可以重试，或换一种来源 / 手动填写。')}</p><div class="workflow-actions">${wf.stage === 'search_failed' ? '<button type="button" class="btn primary small" data-action="workflow-search-retry">重新搜索</button><button type="button" class="btn secondary small" data-action="workflow-search-manual">改用手动填写</button>' : '<button type="button" class="btn secondary small" data-action="workflow-cancel">放弃并换来源</button>'}</div></div>`;
   } else if (wf.stage === 'transcript') {
-    body = `<label class="production-field full"><span>确认提取到的原文</span><textarea id="workflow-transcript" rows="10" maxlength="4000">${escapeHtml(stateData.transcript || '')}</textarea></label><div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-copy-transcript">复制原文</button><button type="button" class="btn primary small" data-action="workflow-confirm-transcript" ${state.workflowBusy ? 'disabled' : ''}>确认原文，开始改写 →</button></div>`;
+    body = `<label class="production-field full"><span>确认提取到的原文</span><textarea id="workflow-transcript" rows="10" maxlength="4000">${escapeHtml(stateData.transcript || '')}</textarea></label><div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-copy-transcript">复制原文</button><button type="button" class="btn primary small" data-action="workflow-confirm-transcript" ${state.workflowBusy ? 'disabled' : ''}>确认原文，拆解改写方案 →</button></div>`;
+  } else if (wf.stage === 'planning') {
+    body = `<div class="workflow-loading"><span class="spinner"></span><b>${escapeHtml(stateData.message || '正在拆解爆款机制…')}</b><p>先判断原文靠什么成立，再设计 3 套可选择的改写方案；这一步不会直接写正文。</p></div>`;
+  } else if (wf.stage === 'plan_failed') {
+    body = `<div class="workflow-error"><b>改写方案没有生成成功</b><p>${escapeHtml(stateData.message || wf.error || '可以重试，不会直接跳到写文案。')}</p><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-regenerate-plans">重新拆解方案</button><button type="button" class="btn secondary small" data-action="workflow-cancel">放弃当前流程</button></div></div>`;
+  } else if (wf.stage === 'rewrite_plan') {
+    body = `<div class="workflow-context"><b>先选改写逻辑，再写 3 个版本</b><p>方案会明确“保留原文什么机制、迁移到本账号什么业务”，不再是直接套行业模板。</p></div>${workflowSourceAnalysisBlock(stateData.sourceAnalysis)}${workflowPlanCards(stateData.planOptions)}<div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-regenerate-plans">换一批方案</button></div>`;
   } else if (wf.stage === 'hotspots_ready') {
     body = `<p class="workflow-context">从近期搜索结果中挑出 ${(stateData.hotspots || []).length} 条可用热点。只引用事实，不要编造新闻细节。</p><div class="workflow-option-list">${(stateData.hotspots || []).map((item, index) => `<article class="workflow-option hotspot"><span class="workflow-option-index">0${index + 1}</span><div><b>${escapeHtml(item.title || '')}</b><p>${escapeHtml(item.fact || item.summary || '')}</p><small>${escapeHtml(item.sourceName || item.siteName || '')}${item.date ? ` · ${escapeHtml(String(item.date).slice(0, 10))}` : ''}</small></div><button type="button" class="btn primary small" data-action="workflow-select-hotspot" data-hotspot-id="${escapeHtml(item.id)}">选这个热点</button></article>`).join('')}</div>`;
   } else if (wf.stage === 'angle') {
@@ -463,7 +504,7 @@ function renderWorkflowCard() {
     body = `${workflowOptionCards(wf, stateData.ideaOptions || [], true)}<div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-regenerate">换一批选题</button></div>`;
   } else if (['rewriting', 'copy', 'ready'].includes(wf.stage)) {
     const options = stateData.copyOptions || [];
-    body = `<h4>${wf.stage === 'ready' ? '3 个版本已完成，选一版进入定稿' : '正在写 3 个版本'}</h4>${stateData.message ? `<p class="workflow-context">${escapeHtml(stateData.message)}</p>` : ''}${workflowOptionCards(wf, options, false)}${wf.stage === 'ready' ? '<div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-regenerate">换一批</button></div>' : ''}`;
+    body = `${workflowPlanSummary(stateData.selectedPlan)}<h4>${wf.stage === 'ready' ? '3 个版本已完成，选一版进入定稿' : '正在按已选方案写 3 个版本'}</h4>${stateData.message ? `<p class="workflow-context">${escapeHtml(stateData.message)}</p>` : ''}${workflowOptionCards(wf, options, false)}${wf.stage === 'ready' ? '<div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-regenerate">同方案换一批</button><button type="button" class="btn ghost small" data-action="workflow-reselect-plan">重选改写方案</button></div>' : ''}`;
   } else if (wf.stage === 'failed') {
     body = `<div class="workflow-error"><b>这次没有完成</b><p>${escapeHtml(wf.error || '请重试')}</p><button type="button" class="btn primary small" data-action="workflow-regenerate">重新生成</button></div>`;
   } else {
@@ -1975,7 +2016,10 @@ async function handleAction(action, target) {
   if (action === 'workflow-cancel') { await cancelWorkflow(); return; }
   if (action === 'workflow-regenerate') { await runWorkflowAction({ action: 'regenerate' }); return; }
   if (action === 'workflow-select-idea') { await runWorkflowAction({ action: 'select_idea', optionId: target?.dataset?.optionId || '' }); return; }
-  if (action === 'workflow-confirm-transcript') { await runWorkflowAction({ action: 'confirm_transcript', text: String(document.querySelector('#workflow-transcript')?.value || '') }); return; }
+  if (action === 'workflow-confirm-transcript') { await runWorkflowAction({ action: 'confirm_transcript', text: String(document.querySelector('#workflow-transcript')?.value || ''), rewritePlan: true }); return; }
+  if (action === 'workflow-select-plan') { await runWorkflowAction({ action: 'select_rewrite_plan', planId: target?.dataset?.planId || '' }); return; }
+  if (action === 'workflow-regenerate-plans') { await runWorkflowAction({ action: 'regenerate_plans' }); return; }
+  if (action === 'workflow-reselect-plan') { await runWorkflowAction({ action: 'reselect_rewrite_plan' }); return; }
   if (action === 'workflow-copy-transcript') { copyWorkflowTranscript(); return; }
   if (action === 'workflow-select-hotspot') { await runWorkflowAction({ action: 'select_hotspot', hotspotId: target?.dataset?.hotspotId || '' }); return; }
   if (action === 'workflow-select-angle') { await runWorkflowAction({ action: 'select_angle', angle: target?.dataset?.angle || '' }); return; }

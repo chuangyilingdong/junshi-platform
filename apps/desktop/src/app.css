@@ -507,10 +507,35 @@ textarea::placeholder, input::placeholder { color: #506e84; }
 .workflow-error p { margin-top: 5px; color: #c9909c; font-size: 10.5px; line-height: 1.6; }
 .workflow-error .btn { margin-top: 11px; }
 .workflow-warning { padding: 11px 13px; border: 1px solid #674d27; border-radius: 9px; color: #e7c58c; background: #281f12; font-size: 10px; line-height: 1.55; }
+.workflow-plan-analysis { display: grid; gap: 9px; padding: 13px 14px; border: 1px solid #1a4059; border-radius: 11px; background: #081a28; }
+.workflow-plan-analysis > div { display: grid; gap: 3px; }
+.workflow-plan-analysis span, .workflow-plan-summary span { color: #63c9f8; font-size: 9px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.workflow-plan-analysis b { color: #d8ecf8; font-size: 11px; line-height: 1.55; }
+.workflow-plan-analysis ol { display: grid; gap: 4px; padding-left: 18px; color: #8eacbe; font-size: 10px; line-height: 1.55; }
+.workflow-plan-analysis small { color: #7395aa; font-size: 9.5px; line-height: 1.5; }
+.workflow-plan-list { display: grid; gap: 10px; }
+.workflow-plan-card { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: start; gap: 11px; padding: 14px; border: 1px solid #1d4560; border-radius: 11px; background: linear-gradient(180deg, #0a1c2a, #081622); }
+.workflow-plan-card:hover { border-color: #2c7294; }
+.workflow-plan-main { display: grid; gap: 6px; min-width: 0; }
+.workflow-plan-title { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.workflow-plan-title b { color: #e3f3fb; font-size: 13px; }
+.workflow-plan-title em { color: #5fa8c8; font-size: 9.5px; font-style: normal; }
+.workflow-plan-main p { color: #91adbf; font-size: 10.5px; line-height: 1.55; }
+.workflow-plan-main p strong { display: inline-block; min-width: 92px; margin-right: 5px; color: #c7e1ee; font-size: 9.5px; }
+.workflow-plan-beats { display: grid; gap: 3px; padding-left: 18px; color: #7f9eb1; font-size: 10px; line-height: 1.5; }
+.workflow-plan-main small { color: #c29172; font-size: 9.5px; line-height: 1.5; }
+.workflow-plan-card .btn { align-self: center; white-space: nowrap; }
+.workflow-plan-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto; align-items: center; gap: 14px; padding: 13px 14px; border: 1px solid #1b5470; border-radius: 11px; background: #082234; }
+.workflow-plan-summary > div { display: grid; gap: 3px; min-width: 0; }
+.workflow-plan-summary b { color: #d8edf8; font-size: 10.5px; line-height: 1.5; }
+.workflow-plan-summary p { color: #83a4b7; font-size: 9.5px; line-height: 1.5; }
 
 @media (max-width: 1240px) {
   .workflow-card-grid { grid-template-columns: 1fr; }
   .workflow-choice-grid { grid-template-columns: 1fr; }
+  .workflow-plan-card { grid-template-columns: 32px minmax(0, 1fr); }
+  .workflow-plan-card .btn { grid-column: 1 / -1; justify-self: start; }
+  .workflow-plan-summary { grid-template-columns: 1fr; }
   .workflow-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .workflow-shell-foot { align-items: flex-start; flex-direction: column; }
 }

@@ -174,6 +174,39 @@ const server = http.createServer(async (req, res) => {
       workflowRow = { ...workflowRow, stage: 'brain', state: { ...workflowRow.state, selectedIdea: idea } };
       return send({ data: { workflow: workflowRow } });
     }
+    if (body.action === 'confirm_transcript' && workflowRow.kind === 'viral') {
+      const plans = [
+        { id: 'plan-1', title: '保留商业拆解链', strategy: '保留“表面收入→真正结构”，换成教育业务。', sourceMechanism: '先承认表面答案，再拆出隐藏收入层。', targetBridge: '把健身赛事的报名、拍摄、周边，映射到体验课、正价课、教材和活动。', thesis: '低价体验课只是入口，真正的结构在后面的长期学习。', beats: ['先说体验课不赚钱', '拆出续班与教材收入', '解释家长真正该看什么'], evidence: ['课程交付流程', '真实家长问题'], avoid: '不要复制健身赛事的具体收费项目。' },
+        { id: 'plan-2', title: '保留反差冲突', strategy: '保留“以为是这样，其实不是”的反差。', sourceMechanism: '用常识判断和真实结构之间的反差制造停留。', targetBridge: '把家长只盯价格，与机构真实交付成本形成对照。', thesis: '只比较价格，最后往往更难判断课程价值。', beats: ['先复述价格误区', '拆出看不见的交付成本', '给出判断标准'], evidence: ['常见价格异议', '课程服务细节'], avoid: '不要夸大行业问题。' },
+        { id: 'plan-3', title: '换家长视角重述', strategy: '保留推理顺序，把行业观察换成家长决策视角。', sourceMechanism: '把复杂结构翻译成受众能立即使用的判断标准。', targetBridge: '从家长选班过程出发，重讲体验课到长期学习的结构。', thesis: '看懂课程结构，才知道钱该花在哪里。', beats: ['从家长纠结开场', '拆出隐藏成本', '给出检查清单'], evidence: ['家长决策节点', '可验证服务承诺'], avoid: '不要变成产品推销清单。' },
+      ];
+      workflowRow = { ...workflowRow, stage: 'rewrite_plan', stageLabel: '选改写方案', state: { ...workflowRow.state, transcript: body.text || workflowRow.state.transcript, sourceAnalysis: { coreQuestion: '表面业务背后真正靠什么成立？', hookMechanism: '先给表面答案，再揭示隐藏结构。', logicChain: ['表面答案', '隐藏结构', '受众决策'], mustReplace: ['原行业人物', '原行业数字'] }, planOptions: plans, selectedPlan: null, copyOptions: [], message: '' } };
+      return send({ data: { workflow: workflowRow } });
+    }
+    if (body.action === 'select_rewrite_plan') {
+      const plan = (workflowRow.state.planOptions || []).find((item) => item.id === body.planId);
+      const copyOptions = [
+        { id: 'viral-copy-1', title: '9块9体验课背后的四层收入结构', content: '体验课本身不赚钱，真正的结构在后面的正价课、教材、活动和长期学习。' },
+        { id: 'viral-copy-2', title: '家长只盯价格，会漏掉什么', content: '价格只是入口，交付结构才决定孩子能不能持续学下去。' },
+        { id: 'viral-copy-3', title: '先看懂课程结构再报班', content: '先看体验课之后会发生什么，再看价格是不是合理。' },
+      ];
+      workflowRow = { ...workflowRow, stage: 'rewriting', stageLabel: '写版本', state: { ...workflowRow.state, selectedPlan: plan, copyOptions: copyOptions.slice(0, 1), message: '正在按已选方案写 3 个版本…' } };
+      const streamingRow = workflowRow;
+      setTimeout(() => {
+        if (workflowRow === streamingRow && workflowRow.stage === 'rewriting') {
+          workflowRow = { ...workflowRow, stage: 'ready', stageLabel: '选版本', state: { ...workflowRow.state, copyOptions, message: '' } };
+        }
+      }, 900);
+      return send({ data: { workflow: workflowRow } });
+    }
+    if (body.action === 'regenerate_plans') {
+      workflowRow = { ...workflowRow, stage: 'rewrite_plan', state: { ...workflowRow.state, selectedPlan: null, copyOptions: [] } };
+      return send({ data: { workflow: workflowRow } });
+    }
+    if (body.action === 'reselect_rewrite_plan') {
+      workflowRow = { ...workflowRow, stage: 'rewrite_plan', state: { ...workflowRow.state, selectedPlan: null, copyOptions: [] } };
+      return send({ data: { workflow: workflowRow } });
+    }
     if (body.action === 'select_brain') {
       const copyOptions = [
         { id: 'copy-1', title: '先别急着报班', content: '家长来问价格前，先看看孩子现在卡在哪一步。' },
@@ -369,6 +402,36 @@ try {
   if (memoryCount !== 1) throw new Error(`memory was not saved: ${memoryCount}`);
   await page.locator('[data-action="context-back"]').click();
 
+  await page.locator('[data-action="workflow-open"][data-kind="viral"]').click();
+  await page.waitForSelector('#workflow-viral-text', { timeout: 5000 });
+  await page.fill('#workflow-viral-text', '一个健身比赛表面只收报名费，背后还有拍摄、周边、赞助和多层商业收入。');
+  await page.locator('[data-action="workflow-launch"]').click();
+  await page.waitForSelector('#workflow-transcript', { timeout: 10000 });
+  await page.locator('[data-action="workflow-confirm-transcript"]').click();
+  await page.waitForSelector('[data-action="workflow-select-plan"]', { timeout: 10000 });
+  const viralPlanCount = await page.locator('[data-action="workflow-select-plan"]').count();
+  const viralPlanText = await page.locator('.workflow-plan-list').innerText();
+  if (viralPlanCount !== 3 || !viralPlanText.includes('保留机制') || !viralPlanText.includes('迁移到本账号') || !viralPlanText.includes('保留商业拆解链')) {
+    throw new Error(`viral plans are incomplete: ${JSON.stringify({ viralPlanCount, viralPlanText: viralPlanText.slice(0, 300) })}`);
+  }
+  await page.locator('[data-action="workflow-select-plan"]').first().click();
+  await page.waitForSelector('.workflow-plan-summary', { timeout: 10000 });
+  const viralPlanSummary = await page.locator('.workflow-plan-summary').innerText();
+  if (!viralPlanSummary.includes('当前改写方案') || !viralPlanSummary.includes('业务桥梁') || !viralPlanSummary.includes('保留商业拆解链')) {
+    throw new Error(`viral plan summary missing: ${viralPlanSummary.slice(0, 300)}`);
+  }
+  await page.waitForFunction(() => {
+    const buttons = document.querySelectorAll('[data-action="workflow-select-copy"]');
+    return buttons.length === 3 && !buttons[0].disabled;
+  }, null, { timeout: 10000 });
+  const viralCopyCount = await page.locator('[data-action="workflow-select-copy"]').count();
+  await page.locator('[data-action="workflow-select-copy"]').first().click();
+  await page.waitForSelector('#output-text', { timeout: 10000 });
+  const viralAdoptedText = await page.locator('#output-text').innerText();
+  if (viralCopyCount !== 3 || !viralAdoptedText.includes('体验课')) {
+    throw new Error(`viral copy did not adopt plan: ${JSON.stringify({ viralCopyCount, viralAdoptedText: viralAdoptedText.slice(0, 200) })}`);
+  }
+
   await page.locator('[data-action="workflow-open"][data-kind="today"]').click();
   await page.waitForSelector('#workflow-goal', { timeout: 5000 });
   await page.fill('#workflow-goal', '家长总觉得课程贵，想讲清价值');
@@ -517,7 +580,7 @@ try {
   const cycleIdea = await page.locator('#create-idea').inputValue();
   if (!cycleIdea.includes('家长为什么先问价格')) throw new Error(`cycle idea was not carried into create: ${cycleIdea}`);
 
-  console.log(JSON.stringify({ name: 'junshi-desktop-app-ux-smoke', pass: true, layout, productionDraft: draftState, shotCount, storyboardEdited: true, publishStep: publishState.currentStep, responsive, workflow: { ideaCount: workflowIdeaCount, copyCount: workflowCopyCount, streamingCopyDisabled, productionTitle }, videoModes: { avatarOptions, hostedDraft: true }, context: { brainCards: brainPanel.cards, brainCardsAfterCreate, memoryCount, assetCount, jobCount, cycleConfirm: true }, insightFlow: true }));
+  console.log(JSON.stringify({ name: 'junshi-desktop-app-ux-smoke', pass: true, layout, productionDraft: draftState, shotCount, storyboardEdited: true, publishStep: publishState.currentStep, responsive, workflow: { ideaCount: workflowIdeaCount, copyCount: workflowCopyCount, streamingCopyDisabled, productionTitle }, viral: { planCount: viralPlanCount, copyCount: viralCopyCount, planSummary: true }, videoModes: { avatarOptions, hostedDraft: true }, context: { brainCards: brainPanel.cards, brainCardsAfterCreate, memoryCount, assetCount, jobCount, cycleConfirm: true }, insightFlow: true }));
 } finally {
   await app.close();
   await new Promise((resolve) => server.close(resolve));
