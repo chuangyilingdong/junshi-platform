@@ -191,7 +191,7 @@
       "source": "apps/server/src/services/junshiDouyin.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiDouyin.js",
-      "sha256": "952059449e15a0fae056b22a44df362ab1dda6642676afd3f3d8bfb6cba1b19b",
+      "sha256": "f71a8f8333cb83d7106c5f85a55ca1dc7edbba39f4848f37e3019cea75ae9bd9",
       "sourceSha256": "47ca8b75f0c2cf1dbe694c1fddca36809fe8b1eb3d72a1b31b6047c9c407b396"
     },
     {

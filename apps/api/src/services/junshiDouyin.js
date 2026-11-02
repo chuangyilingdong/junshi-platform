@@ -337,10 +337,10 @@ function isAsrHallucination(value) {
   const normalized = normalizeAsrText(value);
   if (!normalized) return true;
   if (normalized.length < 6) return true;
-  if (['谢谢观看', '感谢观看', '下期再见', '我们下期再见', '谢谢大家观看'].includes(normalized)) return true;
+  if (['谢谢观看', '感谢观看', '下期再见', '我们下期再见', '谢谢大家观看', '字幕由amaraorg社区提供'].includes(normalized)) return true;
   let remainder = normalized;
   for (const marker of ASR_HALLUCINATION_MARKERS) remainder = remainder.replaceAll(marker, '');
-  if (remainder !== normalized && remainder.replace(/bye/g, '').length <= 2) return true;
+  if (remainder !== normalized && remainder.replace(/bye/g, '').length <= 10) return true;
   return false;
 }
 

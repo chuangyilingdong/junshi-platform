@@ -18,6 +18,7 @@ test('ASR hallucination-only transcripts are rejected', () => {
   assert.deepEqual(result.segments, []);
   assert.equal(transcriptQualityIssue('you'), 'hallucination');
   assert.equal(transcriptQualityIssue('谢谢观看'), 'hallucination');
+  assert.equal(transcriptQualityIssue('字幕由Amara.org社区提供'), 'hallucination');
 });
 
 test('ASR filtering keeps real Chinese speech and removes boilerplate segments', () => {
