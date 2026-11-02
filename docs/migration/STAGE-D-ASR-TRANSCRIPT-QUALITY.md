@@ -53,12 +53,43 @@ This is the end of the video. I hope you enjoyed it. If you did, please leave a 
   - 重新提取
   - 手动粘贴画面文案并继续拆解改写方案
 
+## 画面文字回退
+
+只有背景音乐、没有清晰人声的视频，ASR 为空后自动进入画面文字识别：
+
+```text
+ASR 为空
+→ 抽取 8 帧并拼成 4×2 联系表
+→ 多模态 TEXT 通道读取画面文案
+→ 排除抖音 UI、用户名、按钮、代码和水印
+→ 按画面顺序去重
+→ 标记 transcriptSource=visual
+→ 用户确认后才拆解改写
+```
+
+真实生产验收识别出 230 字画面文案，包括：
+
+```text
+Hello，我是 DeepSeek V4.1-Flash。
+我不是视频生成模型。
+我不能凭空生成任何一帧画面。
+用代码做视频
+以上每一帧，都是一行一行代码写出来的。
+```
+
+界面会明确提示：
+
+```text
+这是画面文字，不是口播转写
+请先核对，必要时直接修改，再进入拆解改写。
+```
+
 ## 测试
 
 API：
 
 ```text
-32/32 passed
+33/33 passed
 ```
 
 覆盖：
@@ -70,6 +101,7 @@ API：
 - 旧工作流质量守卫
 - 重试清空旧文本
 - 真实失败原因透传
+- 画面文字回退生成 8 帧拼图并标记 visual 来源
 
 桌面端：
 
@@ -78,6 +110,7 @@ API：
 viral.manualFallback.retry=1
 viral.manualFallback.manual=1
 viral.manualPlanCount=3
+viral.visualFallback=pass
 ```
 
 ## 真实生产验收
@@ -94,31 +127,33 @@ viral.manualPlanCount=3
 
 ```text
 旧工作流：transcript = you -> extract_failed
-重新提取：transcript = 空
-错误：这条视频没有识别到清晰口播，只检测到背景音乐、环境声或画面文字。
-可使用：重新提取 / 手动粘贴文案
+重新提取：ASR 仍为空
+画面文字回退：transcriptSource = visual
+画面文字：230 字
+状态：transcript，等待用户确认
+用户确认后才进入拆解改写
 ```
 
 ## 生产状态
 
-- release：`/srv/junshi-platform/releases/20261102T054243Z`
-- production commit：`85e26fdfdf0ddf8e8c9756dcb9b367f302378ffa`
-- CI：`41395563225`，success
+- release：`/srv/junshi-platform/releases/20261102T060516Z`
+- production commit：`8912dbf7b1ab28a20571ee3f3c9f2832cc0796fe`
+- CI：`41397661779`，success
 - `junshi-api`、Nginx、旧网站服务：active
 - `junshi-api` NRestarts：0
 - health / ready：通过
 
-## 客户端 0.6.4
+## 客户端 0.6.5
 
-- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.4.exe`
-- 大小：`121,663,549` bytes
-- SHA256：`082FC0A61D2551CDD37A0C3EFF01C5AA7255B853AB3A9E63BD5094E33364A1A4`
-- blockmap SHA256：`732C131BB6E075297E0F71BCCC420A149D6E56784691201C7CF9BE6CE5C63179`
+- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.5.exe`
+- 大小：`121,663,736` bytes
+- SHA256：`7DE1500258968139A2D5EB3C90C325B646D83C5725F4C9DF9D564F67A6968BB3`
+- blockmap SHA256：`71F38D8B6FCA20E6D116E64F7F81F7EE075C918CD22678C379032C385EE2E3CA`
 - 线上更新：`https://aicyld.com/downloads/junshi-desktop/latest.yml`
-- 线上版本：`0.6.4`
+- 线上版本：`0.6.5`
 - `latest.yml`、exe、blockmap 均返回 200，exe 支持 Range
 - 未签名
 
 ## 边界
 
-当前修复的是“人声口播提取”，不是视频画面 OCR。只有画面字幕、没有清晰人声的视频不会凭空生成文案；此时必须手动粘贴画面文字，或后续增加 OCR 通道。
+当前策略是“人声口播优先，画面文字回退”。OCR 结果只作为待确认稿，不直接进入改写；清晰度不足、文字被遮挡或没有文字时仍会要求手动粘贴。
