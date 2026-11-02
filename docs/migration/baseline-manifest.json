@@ -183,7 +183,7 @@
       "source": "apps/server/src/services/junshiChat.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiChat.js",
-      "sha256": "bd0072680c9f6dd9370061f3372e8e5e844e5d1945cd94fa3e4e3d2cd09e50d7",
+      "sha256": "19b2bd73573e5938d66464168ba4309ddb3afb9758b0d2e077501ba5ccfaa9ae",
       "sourceSha256": "a80456531caface6a4f97e74bf168568713233db036637cf2422632219e9c96d",
       "transformation": "attribute-chat-compute-context"
     },
@@ -450,7 +450,7 @@
       "source": "scripts/p149-junshi-published-works.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p149-junshi-published-works.mjs",
-      "sha256": "8fb1cbc9b24adab30769cd306364ba9093c975d72856f9ff38443ab7a443d01d",
+      "sha256": "9580b5ebc0ec499072a74b98febf32a7c4a90702096e667a1578c14ffcfd049d",
       "sourceSha256": "66510524236e1f39d708b578ea3ec4eb9be4ae12d90675cbe7ab34bacb293d70",
       "transformation": "redact-hardcoded-test-password"
     },
@@ -458,7 +458,7 @@
       "source": "scripts/p152-junshi-plan-cards.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p152-junshi-plan-cards.mjs",
-      "sha256": "93d6995f3a574ae676157d28b921d41a6dfd5c885afd1cf88f27fdd70a7e1410",
+      "sha256": "9b953357a64e0fa679123a10a47d699a7fd525cc80e02d968f51b2d6fdc10cf5",
       "sourceSha256": "2597633fd1b98300109e3e246beb7eb68fc4f59c8945cb2f753c28c785ac4ad9",
       "transformation": "redact-hardcoded-test-password"
     },
@@ -473,7 +473,7 @@
       "source": "scripts/p154-junshi-attachments-jobs.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p154-junshi-attachments-jobs.mjs",
-      "sha256": "d8bd9297cc5be7eae368b5c9da428d0a9277da639d794a7f61bc42682930b8e9",
+      "sha256": "6db2fa0088cecf433442fc7e0902d8ccb790a2777f4655c9e3dab2625722a223",
       "sourceSha256": "e09dae9a7b426a4cb7f50bd5747c72ec5faba41f6be4100768ac28903a5fda76",
       "transformation": "redact-hardcoded-test-password"
     },
@@ -481,7 +481,7 @@
       "source": "scripts/p155-junshi-video-package.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p155-junshi-video-package.mjs",
-      "sha256": "ab460e19548bc2a44663e221e53f593f3eb661ada32f4ab82efb6ebd761403e5",
+      "sha256": "cbe8f04bf92e45208044ef34b3bd5589677efde52098b58f4a7ffc8e9f0ada19",
       "sourceSha256": "ff267d6050d4536ea63d7b2e421b4d72b27b0a6585d9c0ad06ee6f5e038cc507",
       "transformation": "redact-hardcoded-test-password"
     },
@@ -489,7 +489,7 @@
       "source": "scripts/p191-junshi-talking-head.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p191-junshi-talking-head.mjs",
-      "sha256": "01f712a1e845b3df12c06beacf7551feb8d8c35626250e18dfbb7939a511c93e",
+      "sha256": "2f4cb36a81ddf8a5951fc24c67e0a97c7a28a4b13b4ea6f28ef1b27bf0fc30f4",
       "sourceSha256": "ced9e3463e54454285b04fdb43ac70c4e918828fd5b29476da7eeaf2658cde46",
       "transformation": "redact-hardcoded-test-password"
     },
@@ -497,7 +497,7 @@
       "source": "scripts/p192-junshi-auto-host.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "scripts/p192-junshi-auto-host.mjs",
-      "sha256": "18c69c91561855c4318073a3eb5e78fde13bcbd34214b56a83eeabe47259fdd4",
+      "sha256": "043e7ae6aaf59e2931b8152aa853505c8069490500efb60d17a58b2d929b4b59",
       "sourceSha256": "9b4674b7e47c15dec16268d30e19202f4a072505257bf46bd50b036b2daac975",
       "transformation": "redact-hardcoded-test-password"
     },

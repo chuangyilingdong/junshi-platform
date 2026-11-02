@@ -8,12 +8,18 @@ const root = path.resolve(scriptDir, '..');
 const manifestPath = path.join(root, 'docs', 'migration', 'baseline-manifest.json');
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 
+function canonicalBuffer(target, buffer) {
+  if (/\.(png|jpe?g|webp|gif|ico)$/i.test(target)) return buffer;
+  return Buffer.from(buffer.toString('utf8').replace(/\r\n/g, '\n'), 'utf8');
+}
+
 const failures = [];
 for (const entry of manifest.entries) {
   const target = path.join(root, entry.target);
   try {
     await stat(target);
-    const digest = createHash('sha256').update(await readFile(target)).digest('hex');
+    const buffer = canonicalBuffer(entry.target, await readFile(target));
+    const digest = createHash('sha256').update(buffer).digest('hex');
     if (digest !== entry.sha256) {
       failures.push(`${entry.target}: hash mismatch`);
     }
