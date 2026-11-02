@@ -51,3 +51,12 @@ test('viral workflow keeps a legacy direct-rewrite path for 0.6.2 clients', () =
   assert.match(route, /action === 'select_rewrite_plan'/);
   assert.match(route, /action === 'reselect_rewrite_plan'/);
 });
+
+test('rewrite plan normalization rejects incomplete or duplicate plan sets', () => {
+  const route = fs.readFileSync(new URL('../src/routes/junshiWorkbench.js', import.meta.url), 'utf8');
+  assert.match(route, /plans\.length !== 3/);
+  assert.match(route, /需要 3 套包含机制、业务桥梁、核心判断和至少 3 个节拍的方案/);
+  assert.match(route, /new Set\(plans\.map/);
+  assert.match(route, /三套方案必须使用不同的迁移思路/);
+  assert.match(route, /id: `p\$\{index \+ 1\}`/);
+});

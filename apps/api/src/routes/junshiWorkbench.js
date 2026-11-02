@@ -3597,7 +3597,7 @@ function normalizeViralPlanPayload(parsed) {
   const sourceAnalysis = parsed?.sourceAnalysis && typeof parsed.sourceAnalysis === 'object' ? parsed.sourceAnalysis : {};
   const rawPlans = Array.isArray(parsed?.plans) ? parsed.plans : Array.isArray(parsed) ? parsed : [];
   const plans = rawPlans.slice(0, 3).map((item, index) => ({
-    id: text(item?.id) || `p${index + 1}`,
+    id: `p${index + 1}`,
     title: text(item?.title).slice(0, 40) || `改写方案 ${index + 1}`,
     strategy: text(item?.strategy).slice(0, 500),
     sourceMechanism: text(item?.sourceMechanism).slice(0, 800),
@@ -3607,7 +3607,12 @@ function normalizeViralPlanPayload(parsed) {
     evidence: (Array.isArray(item?.evidence) ? item.evidence : []).map((evidence) => text(evidence).slice(0, 300)).filter(Boolean).slice(0, 8),
     avoid: text(item?.avoid).slice(0, 500),
   })).filter((item) => item.sourceMechanism || item.targetBridge || item.thesis);
-  if (!plans.length) throw new Error('没有生成出可用的改写方案');
+  if (plans.length !== 3 || plans.some((item) => !item.sourceMechanism || !item.targetBridge || !item.thesis || item.beats.length < 3)) {
+    throw new Error('改写方案不完整：需要 3 套包含机制、业务桥梁、核心判断和至少 3 个节拍的方案');
+  }
+  if (new Set(plans.map((item) => `${item.title}\n${item.targetBridge}\n${item.thesis}`)).size !== 3) {
+    throw new Error('改写方案重复：三套方案必须使用不同的迁移思路');
+  }
   return { sourceAnalysis, plans };
 }
 
