@@ -48,6 +48,19 @@ test('ASR filtering rejects low-confidence no-speech segments before they become
   assert.deepEqual(result.segments, []);
 });
 
+test('no-speech video falls back to visual text extraction and marks the source', () => {
+  const route = fs.readFileSync(new URL('../src/routes/junshiWorkbench.js', import.meta.url), 'utf8');
+  const app = fs.readFileSync(new URL('../../desktop/src/app.js', import.meta.url), 'utf8');
+  assert.match(route, /buildVisualTranscriptPrompt/);
+  assert.match(route, /tile=4x2/);
+  assert.match(route, /extractVisualTextFromAsset/);
+  assert.match(route, /source: 'visual'/);
+  assert.match(route, /transcriptSource/);
+  assert.match(route, /SELECT status, text, title, nickname, error, segments/);
+  assert.match(app, /stateData\.transcriptSource === 'visual'/);
+  assert.match(app, /这是画面文字，不是口播转写/);
+});
+
 test('transcription pipeline has Chinese ASR controls, quality guards, retry and manual fallback', () => {
   const service = fs.readFileSync(new URL('../src/services/junshiDouyin.js', import.meta.url), 'utf8');
   const route = fs.readFileSync(new URL('../src/routes/junshiWorkbench.js', import.meta.url), 'utf8');
@@ -57,7 +70,7 @@ test('transcription pipeline has Chinese ASR controls, quality guards, retry and
   assert.match(route, /transcriptQualityIssue\(transcriptText\)/);
   assert.match(route, /transcriptQualityIssue\(currentState\.transcript\)/);
   assert.match(route, /text='', segments='\[\]', duration_seconds=0/);
-  assert.match(route, /SELECT status, text, title, nickname, error FROM junshi_workbench_transcripts/);
+  assert.match(route, /SELECT status, text, title, nickname, error, segments FROM junshi_workbench_transcripts/);
   assert.match(route, /extractError: tsRow\.error/);
   assert.match(route, /action === 'retry_transcript'/);
   assert.match(route, /\['transcript', 'extract_failed'\]\.includes\(wf\.stage\)/);

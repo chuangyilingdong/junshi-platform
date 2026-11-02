@@ -2627,6 +2627,72 @@ async function tickPeerAutoScheduler() {
   }
 }
 
+function buildVisualTranscriptPrompt(duration) {
+  return `【任务】这是一条抖音视频的 8 帧拼图，按从左到右、从上到下的顺序阅读。请只提取画面中明确可见的文案、字幕、标题、口播字幕和必要的英文产品名，整理成一条可读文案。
+
+【不要提取】
+- 抖音界面、用户名、头像、点赞/评论/收藏数字、按钮、进度条、水印、时间码。
+- 代码编辑器里的代码、终端日志和装饰性符号。
+- 看不清、被遮挡或无法确认的文字。
+- 不要根据常识补全，不要把相邻帧的文字强行改写成通顺的长句。
+
+【要求】
+1. 按画面出现顺序合并重复文字。
+2. 保留原文措辞和标点；只有明显重复的同一句才去重。
+3. 没有可读文案时返回 detected=false。
+4. 只输出一个 JSON 对象，不要解释或代码围栏。
+
+【视频信息】时长约 ${Math.round(Number(duration) || 0)} 秒。
+
+【输出格式】
+{"detected":true,"text":"按顺序整理出的画面文案","segments":["第一段","第二段","第三段"],"notes":"识别不确定之处的简短说明"}
+没有可读文案时输出：{"detected":false,"text":"","segments":[],"notes":"没有清晰可读的画面文字"}`;
+}
+
+/** 口播转写失败后的画面文字回退：8 帧拼图交给多模态 TEXT 通道识别。 */
+async function extractVisualTextFromAsset(assetRow) {
+  if (!assetRow || !/^video\//.test(String(assetRow.mime_type || ''))) return { text: '', segments: [], duration: 0 };
+  if (await textProviderIsMock().catch(() => false)) return { text: '', segments: [], duration: 0 };
+  const buffer = await assetBytes(assetRow);
+  if (!buffer.length) throw new Error('视频文件是空的');
+  if (buffer.length > 200 * 1024 * 1024) throw new Error('视频超过 200MB，暂时无法提取画面文字');
+  let dir = null;
+  try {
+    dir = await mkdtemp(path.join(os.tmpdir(), 'jw-visual-transcript-'));
+    const input = path.join(dir, `input${path.extname(String(assetRow.file_name || '')).slice(0, 8) || '.mp4'}`);
+    const output = path.join(dir, 'contact-sheet.jpg');
+    await writeFile(input, buffer);
+    const duration = await probeVideoDuration(input);
+    const rate = duration > 0.5 ? Math.min(2, Math.max(0.05, 8 / duration)) : 1;
+    await runCommand('ffmpeg', [
+      '-y', '-i', input,
+      '-vf', `fps=${rate.toFixed(6)},scale=600:-2:force_original_aspect_ratio=decrease,tile=4x2:padding=6:margin=6`,
+      '-frames:v', '1', '-q:v', '4', output,
+    ], 180000);
+    const frameBuffer = await readFile(output);
+    if (!frameBuffer.length) throw new Error('没有抽取到视频画面');
+    const dataUrl = `data:image/jpeg;base64,${frameBuffer.toString('base64')}`;
+    const result = await collectText(null, {
+      system: WORKBENCH_SYSTEM,
+      messages: [{ role: 'user', content: [
+        { type: 'text', text: buildVisualTranscriptPrompt(duration) },
+        { type: 'image_url', image_url: { url: dataUrl } },
+      ] }],
+    });
+    const parsed = firstJsonObject(result.text) || {};
+    if (parsed.detected === false) return { text: '', segments: [], duration };
+    const text = String(parsed.text || '').trim().slice(0, 4000);
+    const segments = (Array.isArray(parsed.segments) ? parsed.segments : [])
+      .map((item) => String(item?.text || item || '').trim())
+      .filter(Boolean)
+      .slice(0, 30);
+    if (text.length < 6) return { text: '', segments: [], duration };
+    return { text, segments: segments.length ? segments : [text], duration, notes: String(parsed.notes || '').slice(0, 300) };
+  } finally {
+    if (dir) await rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 /** 后台转写一条素材：写档案行（running）→ whisper → 回填。返回档案 id。 */
 async function startTranscription(owner, { assetRow, source, title, sourceUrl, nickname, accountId }) {
   const transcriptId = id('jwts');
@@ -2657,11 +2723,39 @@ async function runTranscriptionPipeline(owner, transcriptId, job) {
     const asr = await seedanceAsrConfig(policy?.channels);
     if (!asr) throw Object.assign(new Error('转写渠道未配置（需要 seedance.nz 渠道 Key 或 JUNSHI_ASR_ENDPOINT/KEY）'), { code: 'WORKBENCH_ASR_NOT_CONFIGURED' });
     const buffer = await assetBytes(assetRow);
-    const result = await transcribeMediaReliable({ endpoint: asr.endpoint, apiKey: asr.apiKey, buffer, fileName: assetRow.file_name || `${transcriptId}.mp4`, mimeType: assetRow.mime_type || 'video/mp4' });
-    if (!result.text.trim()) throw Object.assign(new Error('这条视频没有识别到清晰口播，只检测到背景音乐、环境声或画面文字。请手动粘贴画面文案，或换一条有人声的视频。'), { code: 'WORKBENCH_ASR_EMPTY' });
-    await aq('UPDATE junshi_workbench_transcripts SET status=?, text=?, segments=?, duration_seconds=?, error="", updated_at=? WHERE id=?',
-      ['succeeded', result.text.slice(0, 100000), JSON.stringify(result.segments.slice(0, 2000)), Number(result.duration) || 0, nowIso(), transcriptId]);
-    await jobDone(job, 'succeeded', `转写完成：${result.segments.length} 段 / ${Math.round(result.duration)} 秒`);
+    let result = null;
+    let speechError = null;
+    try {
+      result = await transcribeMediaReliable({ endpoint: asr.endpoint, apiKey: asr.apiKey, buffer, fileName: assetRow.file_name || `${transcriptId}.mp4`, mimeType: assetRow.mime_type || 'video/mp4' });
+    } catch (error) {
+      speechError = error;
+    }
+    if (result?.text?.trim()) {
+      const speechSegments = (result.segments || []).map((segment) => ({ ...segment, source: 'speech' }));
+      await aq('UPDATE junshi_workbench_transcripts SET status=?, text=?, segments=?, duration_seconds=?, error="", updated_at=? WHERE id=?',
+        ['succeeded', result.text.slice(0, 100000), JSON.stringify(speechSegments.slice(0, 2000)), Number(result.duration) || 0, nowIso(), transcriptId]);
+      await jobDone(job, 'succeeded', `口播转写完成：${speechSegments.length} 段 / ${Math.round(result.duration)} 秒`).catch(() => {});
+      return;
+    }
+
+    let visual = { text: '', segments: [], duration: 0 };
+    let visualError = null;
+    try {
+      visual = await extractVisualTextFromAsset(assetRow);
+    } catch (error) {
+      visualError = error;
+    }
+    if (visual.text) {
+      const visualSegments = visual.segments.map((item, index) => ({ start: index * 3, end: index * 3 + 3, text: item, source: 'visual' }));
+      await aq('UPDATE junshi_workbench_transcripts SET status=?, text=?, segments=?, duration_seconds=?, error="", updated_at=? WHERE id=?',
+        ['succeeded', visual.text.slice(0, 100000), JSON.stringify(visualSegments.slice(0, 2000)), Number(visual.duration) || 0, nowIso(), transcriptId]);
+      await jobDone(job, 'succeeded', `口播未识别，已从画面文字提取 ${visualSegments.length} 段`).catch(() => {});
+      return;
+    }
+
+    if (speechError) throw speechError;
+    if (visualError) throw Object.assign(new Error(`没有识别到清晰口播，画面文字提取也失败：${String(visualError.message || visualError).slice(0, 500)}`), { code: 'WORKBENCH_VISUAL_TRANSCRIPT_FAILED' });
+    throw Object.assign(new Error('没有识别到清晰口播，画面中也没有可读文字。请手动粘贴文案，或换一条有人声/字幕更清楚的视频。'), { code: 'WORKBENCH_TRANSCRIPT_EMPTY' });
   } catch (error) {
     const message = String(error?.message || error).slice(0, 1000);
     await aq('UPDATE junshi_workbench_transcripts SET status=?, error=?, updated_at=? WHERE id=?',
@@ -4434,7 +4528,7 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
       let st = {};
       try { st = JSON.parse(row.state || '{}'); } catch { /* ignore */ }
       if (!st.transcriptId) continue;
-      const tsRow = await arow('SELECT status, text, title, nickname, error FROM junshi_workbench_transcripts WHERE id=?', [st.transcriptId]).catch(() => null);
+      const tsRow = await arow('SELECT status, text, title, nickname, error, segments FROM junshi_workbench_transcripts WHERE id=?', [st.transcriptId]).catch(() => null);
       if (!tsRow) continue;
       if (tsRow.status === 'succeeded') {
         const transcriptText = String(tsRow.text || '').trim();
@@ -4445,7 +4539,10 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
           row.state = JSON.stringify(nextState);
           continue;
         }
-        const nextState = { ...st, transcript: transcriptText.slice(0, 4000), transcriptNickname: tsRow.nickname || '', message: '' };
+        let transcriptSegments = [];
+        try { transcriptSegments = JSON.parse(tsRow.segments || '[]'); } catch { transcriptSegments = []; }
+        const transcriptSource = transcriptSegments.some((segment) => segment?.source === 'visual') ? 'visual' : 'speech';
+        const nextState = { ...st, transcript: transcriptText.slice(0, 4000), transcriptNickname: tsRow.nickname || '', transcriptSource, transcriptSegments: transcriptSegments.slice(0, 200), message: '' };
         await wfUpdate(row.id, owner.key, { stage: 'transcript', state: JSON.stringify(nextState) });
         row.stage = 'transcript';
         row.state = JSON.stringify(nextState);
