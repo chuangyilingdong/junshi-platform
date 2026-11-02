@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_URL="https://github.com/chuangyilingdong/junshi-platform.git"
+NODE_BIN="/srv/ai-kids-platform/runtime/node/bin"
+command_text="${SSH_ORIGINAL_COMMAND:-}"
+
+if [[ ! "$command_text" =~ ^(deploy|verify)\ ([0-9a-f]{40})$ ]]; then
+  echo "denied: only 'deploy <40-char-commit>' or 'verify <40-char-commit>' is allowed" >&2
+  exit 2
+fi
+mode="${BASH_REMATCH[1]}"
+commit="${BASH_REMATCH[2]}"
+export PATH="$NODE_BIN:$PATH"
+export GIT_TERMINAL_PROMPT=0
+
+tmp="$(mktemp -d /tmp/junshi-deploy-entry.XXXXXX)"
+cleanup() { rm -rf "$tmp"; }
+trap cleanup EXIT
+git clone --quiet --branch main "$REPO_URL" "$tmp/repo"
+git -c safe.directory="$tmp/repo" -C "$tmp/repo" checkout --quiet "$commit"
+actual="$(git -c safe.directory="$tmp/repo" -C "$tmp/repo" rev-parse HEAD)"
+if [[ "$actual" != "$commit" ]]; then
+  echo "commit mismatch" >&2
+  exit 1
+fi
+if ! git -c safe.directory="$tmp/repo" -C "$tmp/repo" merge-base --is-ancestor "$actual" refs/remotes/origin/main; then
+  echo "refusing commit outside main" >&2
+  exit 1
+fi
+
+if [[ "$mode" == "verify" ]]; then
+  bash "$tmp/repo/scripts/deploy-production.sh" "$commit" --no-switch
+else
+  bash "$tmp/repo/scripts/deploy-production.sh" "$commit" deploy
+fi

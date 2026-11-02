@@ -78,4 +78,4 @@ jobs:
             -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$HOME/.ssh/known_hosts" \
             "$PROD_SSH_USER@$PROD_SSH_HOST" \
-            "bash -s -- '$TARGET_COMMIT'" < scripts/deploy-production.sh
+            "deploy '$TARGET_COMMIT'"

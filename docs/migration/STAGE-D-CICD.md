@@ -9,6 +9,7 @@
 - 触发方式：`workflow_dispatch` 人工触发
 - 环境：GitHub Environment `production`
 - 自动回滚：健康检查失败时切回上一 release
+- SSH 使用受限部署密钥：只能执行 `deploy <commit>` / `verify <commit>`，不能获得交互式 shell
 - 当前尚未配置 GitHub production secrets，首次真实工作流部署待执行
 
 ## 必填 Secrets
@@ -35,14 +36,31 @@ PROD_SSH_PORT
 1. 校验输入是 40 位 commit SHA
 2. 校验 commit 属于 `main`
 3. 安装依赖并运行现有 CI 门禁
-4. 通过 SSH 把 `scripts/deploy-production.sh` 送入生产服务器
-5. 创建新 release
-6. `corepack pnpm install --prod --frozen-lockfile --ignore-scripts`
-7. 运行 release 运行时依赖、迁移、API 和部署模板校验
-8. 原子切换 `/srv/junshi-platform/current`
-9. 重启 `junshi-api`
-10. 验证本地 health/ready、公网 Junshi API、网站 API 和 healthcheck service
-11. 任一步失败自动回滚 release、systemd unit 和 API
+4. 通过受限 SSH 强制命令提交 `deploy <commit>`
+5. 服务端校验 commit 属于 main，再从目标 commit 加载 `scripts/deploy-production.sh`
+6. 创建新 release
+7. `corepack pnpm install --prod --frozen-lockfile --ignore-scripts`
+8. 运行 release 运行时依赖、迁移、API 和部署模板校验
+9. 原子切换 `/srv/junshi-platform/current`
+10. 重启 `junshi-api`
+11. 验证本地 health/ready、公网 Junshi API、网站 API 和 healthcheck service
+12. 任一步失败自动回滚 release、systemd unit 和 API
+
+## 服务端强制命令
+
+仓库文件：
+
+```text
+deploy/server/junshi-deploy-authorized
+```
+
+安装目标：
+
+```text
+/usr/local/sbin/junshi-deploy-authorized
+```
+
+`authorized_keys` 中使用 `restrict,command="/usr/local/sbin/junshi-deploy-authorized"` 限制该密钥。即使拿到密钥，也只能提交白名单 commit 的部署命令，不能执行任意 shell。
 
 ## 边界
 

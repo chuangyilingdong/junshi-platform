@@ -44,6 +44,10 @@ if [[ "$actual" != "$COMMIT" ]]; then
   echo "commit mismatch: expected=$COMMIT actual=$actual" >&2
   exit 1
 fi
+if ! git -c safe.directory="$target" -C "$target" merge-base --is-ancestor "$actual" refs/remotes/origin/main; then
+  echo "refusing to deploy a commit outside main: $COMMIT" >&2
+  exit 1
+fi
 sudo chown -R ai-kids-prod:ai-kids-prod "$target"
 
 cd "$target"
