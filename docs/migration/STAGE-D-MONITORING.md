@@ -50,7 +50,7 @@ JUNSHI_ALERT_WEBHOOK_FORMAT=generic
 
 2026-11-02 已部署：
 
-- 当前 release：`/srv/junshi-platform/releases/20261102T052443Z`
+- 当前 release：`/srv/junshi-platform/releases/20261102T054243Z`
 - `junshi-healthcheck.timer`：active
 - 手动运行：通过
 - 首次定时运行：通过

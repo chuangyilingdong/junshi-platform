@@ -85,10 +85,10 @@ viral.planSummary=true
 
 ## 当前状态
 
-- API 已部署到生产 release `20261102T052443Z`
-- 客户端 `0.6.3` 已构建并通过安装版回归
+- API 已部署到生产 release `20261102T054243Z`
+- 客户端 `0.6.4` 已构建并通过 5 套自动测试
 - 真实 Provider 验收通过
-- 0.6.3 已上传更新渠道，`latest.yml` 已切到 0.6.3
+- 0.6.4 已上传更新渠道，`latest.yml` 已切到 0.6.4
 
 ## 真实 Provider 验收
 
@@ -129,12 +129,13 @@ viral.planSummary=true
 临时 compute_attempts：0
 ```
 
-## 客户端 0.6.3
+## 客户端 0.6.4
 
-- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.3.exe`
-- 大小：`121,663,379` bytes
-- SHA256：`986691BD5762DBF93AEE851CCD8A01A3B176FC0E656C2FCF0F1933B1B18FC43E`
+- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.4.exe`
+- 大小：`121,663,549` bytes
+- SHA256：`082FC0A61D2551CDD37A0C3EFF01C5AA7255B853AB3A9E63BD5094E33364A1A4`
 - 未签名
 - 安装版真实账号回归：通过
 - 已上传 `https://aicyld.com/downloads/junshi-desktop/`
 - 线上 `latest.yml`、exe、blockmap 均返回 200；exe SHA256 与本地一致
+- ASR 幻觉修复见 `docs/migration/STAGE-D-ASR-TRANSCRIPT-QUALITY.md`
