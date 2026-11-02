@@ -192,8 +192,50 @@ const server = http.createServer(async (req, res) => {
         error: '',
         state: {
           ...workflowRow.state,
+          transcriptMode: 'auto',
           transcriptSource: 'visual',
           transcript: 'Hello，我是 DeepSeek V4.1-Flash。代码可以变成任何画面。',
+          extractError: '',
+        },
+      };
+      return send({ data: { workflow: workflowRow } });
+    }
+    if (body.action === 'switch_transcript_mode') {
+      workflowRow = {
+        ...workflowRow,
+        stage: 'transcript',
+        stageLabel: '确认原文',
+        error: '',
+        state: {
+          ...workflowRow.state,
+          transcriptMode: body.mode,
+          transcriptSource: body.mode === 'speech' ? 'speech' : 'visual',
+          transcript: body.mode === 'speech' ? '切换到口播后的新稿。' : '切换来源后的画面文字稿。',
+          previousTranscript: {
+            transcriptId: workflowRow.state.transcriptId || 'jwts-1',
+            text: workflowRow.state.transcript || '上一稿',
+            transcriptSource: workflowRow.state.transcriptSource || 'visual',
+            transcriptMode: workflowRow.state.transcriptMode || 'auto',
+            transcriptSegments: [],
+          },
+          extractError: '',
+        },
+      };
+      return send({ data: { workflow: workflowRow } });
+    }
+    if (body.action === 'restore_previous_transcript') {
+      const previous = workflowRow.state.previousTranscript || {};
+      workflowRow = {
+        ...workflowRow,
+        stage: 'transcript',
+        stageLabel: '确认原文',
+        error: '',
+        state: {
+          ...workflowRow.state,
+          transcriptMode: previous.transcriptMode || 'visual',
+          transcriptSource: previous.transcriptSource || 'visual',
+          transcript: previous.text || '恢复后的上一稿。',
+          previousTranscript: null,
           extractError: '',
         },
       };
@@ -491,6 +533,16 @@ try {
   if (!viralVisualFallback.warning.includes('画面文字') || !viralVisualFallback.transcript.includes('DeepSeek')) {
     throw new Error(`viral visual fallback missing: ${JSON.stringify(viralVisualFallback)}`);
   }
+  const transcriptModeSwitchCount = await page.locator('[data-action="workflow-switch-transcript-mode"]').count();
+  await page.locator('[data-action="workflow-switch-transcript-mode"][data-mode="speech"]').click();
+  await page.waitForFunction(() => document.querySelector('[data-action="workflow-switch-transcript-mode"][data-mode="speech"]')?.classList.contains('active'), null, { timeout: 10000 });
+  const switchedTranscript = await page.locator('#workflow-transcript').inputValue();
+  await page.locator('[data-action="workflow-restore-previous-transcript"]').click();
+  await page.waitForSelector('.workflow-warning', { timeout: 10000 });
+  const restoredTranscript = await page.locator('#workflow-transcript').inputValue();
+  if (transcriptModeSwitchCount !== 4 || !switchedTranscript.includes('口播') || !restoredTranscript.includes('DeepSeek')) {
+    throw new Error(`transcript switch/restore failed: ${JSON.stringify({ transcriptModeSwitchCount, switchedTranscript, restoredTranscript })}`);
+  }
   await page.fill('#workflow-transcript', 'Hello，我是 DeepSeek V4.1-Flash。代码可以变成任何画面。');
   await page.locator('[data-action="workflow-confirm-transcript"]').click();
   await page.waitForSelector('[data-action="workflow-select-plan"]', { timeout: 10000 });
@@ -652,7 +704,7 @@ try {
   const cycleIdea = await page.locator('#create-idea').inputValue();
   if (!cycleIdea.includes('家长为什么先问价格')) throw new Error(`cycle idea was not carried into create: ${cycleIdea}`);
 
-  console.log(JSON.stringify({ name: 'junshi-desktop-app-ux-smoke', pass: true, layout, productionDraft: draftState, shotCount, storyboardEdited: true, publishStep: publishState.currentStep, responsive, workflow: { ideaCount: workflowIdeaCount, copyCount: workflowCopyCount, streamingCopyDisabled, productionTitle }, viral: { planCount: viralPlanCount, copyCount: viralCopyCount, planSummary: true, transcriptModeCount, transcriptModeActive: String(transcriptModeActive).includes('active'), manualFallback: viralFallback, visualFallback: viralVisualFallback, planCountAfterVisual: viralManualPlanCount }, videoModes: { avatarOptions, hostedDraft: true }, context: { brainCards: brainPanel.cards, brainCardsAfterCreate, memoryCount, assetCount, jobCount, cycleConfirm: true }, insightFlow: true }));
+  console.log(JSON.stringify({ name: 'junshi-desktop-app-ux-smoke', pass: true, layout, productionDraft: draftState, shotCount, storyboardEdited: true, publishStep: publishState.currentStep, responsive, workflow: { ideaCount: workflowIdeaCount, copyCount: workflowCopyCount, streamingCopyDisabled, productionTitle }, viral: { planCount: viralPlanCount, copyCount: viralCopyCount, planSummary: true, transcriptModeCount, transcriptModeActive: String(transcriptModeActive).includes('active'), manualFallback: viralFallback, visualFallback: viralVisualFallback, transcriptModeSwitchCount, switchedTranscript, restoredTranscript, planCountAfterVisual: viralManualPlanCount }, videoModes: { avatarOptions, hostedDraft: true }, context: { brainCards: brainPanel.cards, brainCardsAfterCreate, memoryCount, assetCount, jobCount, cycleConfirm: true }, insightFlow: true }));
 } finally {
   await app.close();
   await new Promise((resolve) => server.close(resolve));

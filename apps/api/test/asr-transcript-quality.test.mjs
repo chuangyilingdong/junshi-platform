@@ -60,6 +60,11 @@ test('transcript source modes are persisted, retry-safe and support mixed output
   assert.match(app, /workflow-transcript-mode/);
   assert.match(app, /transcriptMode: composer\.transcriptMode \|\| 'auto'/);
   assert.match(app, /口播 \+ 画面文字合并稿/);
+  assert.match(route, /action === 'switch_transcript_mode'/);
+  assert.match(route, /action === 'restore_previous_transcript'/);
+  assert.match(route, /previousTranscript/);
+  assert.match(app, /workflow-switch-transcript-mode/);
+  assert.match(app, /workflow-restore-previous-transcript/);
 });
 
 test('no-speech video falls back to visual text extraction and marks the source', () => {

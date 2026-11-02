@@ -2698,6 +2698,9 @@ function normalizeTranscriptMode(value) {
   const mode = String(value || '').trim().toLowerCase();
   return TRANSCRIPT_MODES.has(mode) ? mode : 'auto';
 }
+function transcriptModeLabel(value) {
+  return { auto: '自动识别', speech: '只要口播', visual: '只要画面文字', both: '口播 + 画面文字' }[normalizeTranscriptMode(value)];
+}
 function transcriptSourceFromSegments(segments) {
   const sources = new Set((Array.isArray(segments) ? segments : []).map((segment) => String(segment?.source || 'speech')).filter(Boolean));
   if (sources.has('speech') && sources.has('visual')) return 'mixed';
@@ -2784,7 +2787,7 @@ async function runTranscriptionPipeline(owner, transcriptId, job) {
       return;
     }
 
-    const modeLabel = { auto: '自动识别', speech: '只提取口播', visual: '只提取画面文字', both: '口播 + 画面文字' }[mode];
+    const modeLabel = transcriptModeLabel(mode);
     if (mode === 'speech') {
       if (speechError) throw speechError;
       throw Object.assign(new Error('没有识别到清晰口播。请切换为“画面文字”或“口播 + 画面文字”，也可以手动粘贴文案。'), { code: 'WORKBENCH_SPEECH_EMPTY' });
@@ -4773,6 +4776,68 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
       if (!HOTSPOT_ANGLES.some((item) => item[0] === angle)) throw errors.badRequest('未知结合方式', 'VALIDATION_ERROR', { field: 'angle' });
       state.angle = angle;
       await wfUpdate(wfId, owner.key, { stage: 'brain', state: JSON.stringify(state) });
+    } else if (action === 'switch_transcript_mode' && wf.kind === 'viral' && ['transcript', 'extract_failed'].includes(wf.stage)) {
+      const mode = normalizeTranscriptMode(ctx.body?.mode);
+      const oldTranscriptId = text(state.transcriptId);
+      const oldTranscript = oldTranscriptId ? await arow('SELECT * FROM junshi_workbench_transcripts WHERE id=? AND owner_key=?', [oldTranscriptId, owner.key]) : null;
+      if (!oldTranscript) throw errors.badRequest('当前原文没有关联的转写素材，请重新发起或手动填写', 'WORKBENCH_TRANSCRIPT_NOT_FOUND');
+      const assetRow = oldTranscript.asset_id ? await arow('SELECT * FROM junshi_workbench_assets WHERE id=? AND owner_key=?', [oldTranscript.asset_id, owner.key]) : null;
+      if (!assetRow) throw errors.badRequest('原始视频素材已不存在，无法切换来源', 'WORKBENCH_ASSET_NOT_FOUND');
+      let oldSegments = [];
+      try { oldSegments = JSON.parse(oldTranscript.segments || '[]'); } catch { oldSegments = []; }
+      const previousTranscript = {
+        transcriptId: oldTranscriptId,
+        text: String(state.transcript || oldTranscript.text || '').slice(0, 4000),
+        transcriptSource: state.transcriptSource || transcriptSourceFromSegments(oldSegments),
+        transcriptMode: normalizeTranscriptMode(state.transcriptMode),
+        transcriptSegments: (Array.isArray(state.transcriptSegments) ? state.transcriptSegments : oldSegments).slice(0, 200),
+        at: nowIso(),
+      };
+      douyinRateLimit(owner.key);
+      const newTranscriptId = await startTranscription(owner, {
+        assetRow,
+        source: oldTranscript.source || 'upload',
+        title: oldTranscript.title || state.sourceLabel || '视频来源',
+        sourceUrl: oldTranscript.source_url || '',
+        nickname: oldTranscript.nickname || '',
+        accountId: oldTranscript.account_id || wf.accountId,
+        transcriptMode: mode,
+      });
+      const nextState = {
+        ...state,
+        transcriptId: newTranscriptId,
+        transcriptMode: mode,
+        previousTranscript,
+        transcript: '',
+        transcriptSource: '',
+        transcriptSegments: [],
+        extractError: '',
+        message: `正在按「${transcriptModeLabel(mode)}」重新提取…`,
+      };
+      await wfUpdate(wfId, owner.key, { stage: 'extracting', error: '', state: JSON.stringify(nextState) });
+    } else if (action === 'restore_previous_transcript' && wf.kind === 'viral' && ['transcript', 'extract_failed'].includes(wf.stage)) {
+      const previous = state.previousTranscript && typeof state.previousTranscript === 'object' ? state.previousTranscript : null;
+      if (!previous?.text) throw errors.badRequest('没有可恢复的上一稿', 'WORKBENCH_PREVIOUS_TRANSCRIPT_EMPTY');
+      const current = {
+        transcriptId: text(state.transcriptId),
+        text: String(state.transcript || '').slice(0, 4000),
+        transcriptSource: state.transcriptSource || '',
+        transcriptMode: normalizeTranscriptMode(state.transcriptMode),
+        transcriptSegments: Array.isArray(state.transcriptSegments) ? state.transcriptSegments.slice(0, 200) : [],
+        at: nowIso(),
+      };
+      const nextState = {
+        ...state,
+        transcriptId: previous.transcriptId || state.transcriptId,
+        transcript: String(previous.text).slice(0, 4000),
+        transcriptSource: previous.transcriptSource || 'speech',
+        transcriptMode: normalizeTranscriptMode(previous.transcriptMode),
+        transcriptSegments: Array.isArray(previous.transcriptSegments) ? previous.transcriptSegments.slice(0, 200) : [],
+        previousTranscript: current.text ? current : null,
+        extractError: '',
+        message: '',
+      };
+      await wfUpdate(wfId, owner.key, { stage: 'transcript', error: '', state: JSON.stringify(nextState) });
     } else if (action === 'retry_transcript' && wf.kind === 'viral' && wf.stage === 'extract_failed') {
       const transcriptId = text(state.transcriptId);
       const transcriptRow = transcriptId ? await arow('SELECT * FROM junshi_workbench_transcripts WHERE id=? AND owner_key=?', [transcriptId, owner.key]) : null;

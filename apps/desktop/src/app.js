@@ -487,6 +487,23 @@ function workflowPlanSummary(plan) {
     <button type="button" class="btn ghost small" data-action="workflow-reselect-plan">重选方案</button>
   </section>`;
 }
+const WORKFLOW_TRANSCRIPT_MODE_OPTIONS = [
+  ['auto', '自动'],
+  ['speech', '只要口播'],
+  ['visual', '只要画面文字'],
+  ['both', '口播 + 画面'],
+];
+function workflowTranscriptModeLabel(mode) {
+  return (WORKFLOW_TRANSCRIPT_MODE_OPTIONS.find(([value]) => value === (mode || 'auto')) || WORKFLOW_TRANSCRIPT_MODE_OPTIONS[0])[1];
+}
+function workflowTranscriptModeControl(stateData) {
+  const current = stateData.transcriptMode || 'auto';
+  const previous = stateData.previousTranscript?.text
+    ? `<button type="button" class="btn ghost small" data-action="workflow-restore-previous-transcript" ${state.workflowBusy ? 'disabled' : ''}>恢复上一稿</button>`
+    : '';
+  return `<div class="workflow-context"><b>当前转写来源：${escapeHtml(workflowTranscriptModeLabel(current))}</b><p>切换来源会重新提取，新结果成功后才替换当前稿。</p><div class="chip-group">${WORKFLOW_TRANSCRIPT_MODE_OPTIONS.map(([value, label]) => `<button type="button" class="choice-chip${current === value ? ' active' : ''}" data-action="workflow-switch-transcript-mode" data-mode="${value}" ${state.workflowBusy ? 'disabled' : ''}>${label}</button>`).join('')}${previous}</div></div>`;
+}
+
 function renderWorkflowCard() {
   const wf = state.workflow;
   if (!wf) return '';
@@ -497,7 +514,7 @@ function renderWorkflowCard() {
   } else if (wf.stage === 'extract_failed' || wf.stage === 'search_failed') {
     body = wf.stage === 'search_failed'
       ? `<div class="workflow-error"><b>热点搜索没有完成</b><p>${escapeHtml(stateData.extractError || wf.error || '可以重试，或换一种来源 / 手动填写。')}</p><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-search-retry">重新搜索</button><button type="button" class="btn secondary small" data-action="workflow-search-manual">改用手动填写</button></div></div>`
-      : `<div class="workflow-error"><b>没有提取到可用的人声文案</b><p>${escapeHtml(stateData.extractError || wf.error || '请重新转写、手动粘贴画面文案，或换一条有人声的视频。')}</p><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-retry-transcript">重新提取</button><button type="button" class="btn secondary small" data-action="workflow-cancel">放弃并换来源</button></div></div><label class="production-field full"><span>或手动粘贴这条视频的文案</span><textarea id="workflow-manual-transcript" rows="8" maxlength="4000" placeholder="把画面字幕、口播稿或你整理出的文案粘贴到这里"></textarea></label><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-confirm-manual-transcript" ${state.workflowBusy ? 'disabled' : ''}>用手动文案拆解改写方案 →</button></div>`;
+      : `<div class="workflow-error"><b>没有提取到可用的人声文案</b><p>${escapeHtml(stateData.extractError || wf.error || '请重新转写、手动粘贴画面文案，或换一条有人声的视频。')}</p><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-retry-transcript">重新提取</button><button type="button" class="btn secondary small" data-action="workflow-cancel">放弃并换来源</button></div></div>${workflowTranscriptModeControl(stateData)}<label class="production-field full"><span>或手动粘贴这条视频的文案</span><textarea id="workflow-manual-transcript" rows="8" maxlength="4000" placeholder="把画面字幕、口播稿或你整理出的文案粘贴到这里"></textarea></label><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-confirm-manual-transcript" ${state.workflowBusy ? 'disabled' : ''}>用手动文案拆解改写方案 →</button></div>`;
   } else if (wf.stage === 'transcript') {
     const transcriptSource = stateData.transcriptSource || 'speech';
     const visualTranscript = transcriptSource === 'visual';
@@ -508,7 +525,7 @@ function renderWorkflowCard() {
         ? '<div class="workflow-warning"><b>这是画面文字，不是口播转写</b><p>系统没有识别到清晰人声，已自动读取视频画面里的文字。请先核对，必要时直接修改，再进入拆解改写。</p></div>'
         : '';
     const transcriptLabel = mixedTranscript ? '确认口播 + 画面文字合并稿' : visualTranscript ? '确认画面文字' : '确认提取到的原文';
-    body = `${sourceNotice}<label class="production-field full"><span>${transcriptLabel}</span><textarea id="workflow-transcript" rows="10" maxlength="4000">${escapeHtml(stateData.transcript || '')}</textarea></label><div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-copy-transcript">复制原文</button><button type="button" class="btn primary small" data-action="workflow-confirm-transcript" ${state.workflowBusy ? 'disabled' : ''}>确认原文，拆解改写方案 →</button></div>`;
+    body = `${sourceNotice}${workflowTranscriptModeControl(stateData)}<label class="production-field full"><span>${transcriptLabel}</span><textarea id="workflow-transcript" rows="10" maxlength="4000">${escapeHtml(stateData.transcript || '')}</textarea></label><div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-copy-transcript">复制原文</button><button type="button" class="btn primary small" data-action="workflow-confirm-transcript" ${state.workflowBusy ? 'disabled' : ''}>确认原文，拆解改写方案 →</button></div>`;
   } else if (wf.stage === 'planning') {
     body = `<div class="workflow-loading"><span class="spinner"></span><b>${escapeHtml(stateData.message || '正在拆解爆款机制…')}</b><p>先判断原文靠什么成立，再设计 3 套可选择的改写方案；这一步不会直接写正文。</p></div>`;
   } else if (wf.stage === 'plan_failed') {
@@ -2043,6 +2060,8 @@ async function handleAction(action, target) {
   if (action === 'workflow-confirm-transcript') { await runWorkflowAction({ action: 'confirm_transcript', text: String(document.querySelector('#workflow-transcript')?.value || ''), rewritePlan: true }); return; }
   if (action === 'workflow-confirm-manual-transcript') { await runWorkflowAction({ action: 'confirm_transcript', text: String(document.querySelector('#workflow-manual-transcript')?.value || ''), rewritePlan: true }); return; }
   if (action === 'workflow-retry-transcript') { await runWorkflowAction({ action: 'retry_transcript' }); return; }
+  if (action === 'workflow-switch-transcript-mode') { await runWorkflowAction({ action: 'switch_transcript_mode', mode: target?.dataset?.mode || 'auto' }); return; }
+  if (action === 'workflow-restore-previous-transcript') { await runWorkflowAction({ action: 'restore_previous_transcript' }); return; }
   if (action === 'workflow-select-plan') { await runWorkflowAction({ action: 'select_rewrite_plan', planId: target?.dataset?.planId || '' }); return; }
   if (action === 'workflow-regenerate-plans') { await runWorkflowAction({ action: 'regenerate_plans' }); return; }
   if (action === 'workflow-reselect-plan') { await runWorkflowAction({ action: 'reselect_rewrite_plan' }); return; }
