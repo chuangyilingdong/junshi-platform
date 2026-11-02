@@ -73,7 +73,8 @@ try {
   remoteSql(`INSERT INTO sessions (id,token_hash,user_id,role,org_id,client_type,created_at,expires_at,superseded_at) VALUES ('${sessionId}','${tokenHash}','${USER_ID}','ORG_ADMIN','${ORG_ID}','web','${now.toISOString()}','${expiresAt}',NULL);`);
   sessionCreated = true;
   const results = [];
-  for (const item of cases) {
+  const requested = new Set(String(process.env.JUNSHI_REGRESSION_CASES || '').split(',').map((item) => item.trim()).filter(Boolean));
+  for (const item of cases.filter((entry) => !requested.size || requested.has(entry.id))) {
     const assetId = String(process.env[item.assetEnv] || '').trim();
     if (!assetId) {
       if (item.optional) {
@@ -89,8 +90,8 @@ try {
     const latest = await pollWorkflow(workflowId);
     const record = created.find((entry) => entry.workflowId === workflowId);
     record.transcriptId = latest.state?.transcriptId || '';
-    assert.equal(latest.stage, item.expectStage, `${item.id}: expected ${item.expectStage}, got ${latest.stage}; ${latest.state?.extractError || latest.error || ''}`);
-    if (item.errorPattern) assert.match(String(latest.state?.extractError || latest.error || ''), item.errorPattern, `${item.id}: wrong error`);
+    assert.equal(latest.stage, item.expectStage, `${item.id}: expected ${item.expectStage}, got ${latest.stage}; ${JSON.stringify(latest).slice(0, 1200)}`);
+    if (item.errorPattern) assert.match(String(latest.state?.extractError || latest.error || ''), item.errorPattern, `${item.id}: wrong error; ${JSON.stringify(latest).slice(0, 1200)}`);
     if (item.sources) {
       const source = latest.state?.transcriptSource || 'speech';
       assert.ok(item.sources.includes(source), `${item.id}: expected source ${item.sources.join('|')}, got ${source}`);

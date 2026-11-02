@@ -87,6 +87,7 @@ test('transcription pipeline has Chinese ASR controls, quality guards, retry and
   assert.match(route, /text='', segments='\[\]', duration_seconds=0/);
   assert.match(route, /SELECT status, text, title, nickname, error, segments FROM junshi_workbench_transcripts/);
   assert.match(route, /extractError: tsRow\.error/);
+  assert.match(route, /row\.state = JSON\.stringify\(nextState\)/);
   assert.match(route, /action === 'retry_transcript'/);
   assert.match(route, /\['transcript', 'extract_failed'\]\.includes\(wf\.stage\)/);
 });

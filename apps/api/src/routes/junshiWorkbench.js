@@ -4585,8 +4585,10 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
         row.stage = 'transcript';
         row.state = JSON.stringify(nextState);
       } else if (tsRow.status === 'failed') {
-        await wfUpdate(row.id, owner.key, { stage: 'extract_failed', state: JSON.stringify({ ...st, transcript: '', extractError: tsRow.error || '这条内容的转写失败了（可能是纯音乐或太短），换一条试试' }) });
+        const nextState = { ...st, transcript: '', extractError: tsRow.error || '这条内容的转写失败了（可能是纯音乐或太短），换一条试试' };
+        await wfUpdate(row.id, owner.key, { stage: 'extract_failed', state: JSON.stringify(nextState) });
         row.stage = 'extract_failed';
+        row.state = JSON.stringify(nextState);
       }
     }
     const items = rows.map(wfOut);

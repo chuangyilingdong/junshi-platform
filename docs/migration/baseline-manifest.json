@@ -162,7 +162,7 @@
       "source": "apps/server/src/routes/junshiWorkbench.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/routes/junshiWorkbench.js",
-      "sha256": "8332f989b9d634b0729cf98f8ffca0cd5eefb38e5bf5fb62158a54fcf0f08d41",
+      "sha256": "cb645c1f093bfa0b8c8335efd39f1f68a182116bf39a075442dca2dd89712378",
       "sourceSha256": "f44c3e10858e3a8d34de341fe9e31aa844fa594ef041f7b3cc0fd28e744a92fe"
     },
     {
