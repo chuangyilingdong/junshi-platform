@@ -89,7 +89,7 @@ Hello，我是 DeepSeek V4.1-Flash。
 API：
 
 ```text
-34/34 passed
+38/38 passed
 ```
 
 覆盖：
@@ -106,6 +106,8 @@ API：
 - 自动、口播、画面文字、口播+画面文字四种模式
 - 同工作流切换来源并保留上一稿快照
 - 新提取失败后恢复上一稿
+- 场景变化关键帧与均匀帧混合采样
+- 12 帧拆成两张 3×2 拼图，避免整体缩放压小文字
 
 桌面端：
 
@@ -117,6 +119,7 @@ viral.manualPlanCount=3
 viral.visualFallback=pass
 viral.transcriptModeSwitchCount=4
 viral.restorePrevious=pass
+viral.visualMeta=hybrid/12 frames/2 sheets
 ```
 
 ## 真实生产验收
@@ -142,21 +145,21 @@ viral.restorePrevious=pass
 
 ## 生产状态
 
-- release：`/srv/junshi-platform/releases/20261102T063544Z`
-- production commit：`ea66f1adfa0c1fc4566e761f6b106681dbee5a08`
-- CI：`41400803460`，success
+- release：`/srv/junshi-platform/releases/20261102T065138Z`
+- production commit：`8f890c5ca46ca7cfac21faae1141ee9de5659837`
+- CI：`41402535785`，success
 - `junshi-api`、Nginx、旧网站服务：active
 - `junshi-api` NRestarts：0
 - health / ready：通过
 
-## 客户端 0.6.7
+## 客户端 0.6.8
 
-- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.7.exe`
-- 大小：`121,664,346` bytes
-- SHA256：`0D585530D34FD9BB2641DF46A3FE4E82164573000A44DFF6AEE6E889AACD5656`
-- blockmap SHA256：`4ED67051B3345B835BD315C6D68EDEB2D304DF90A3185ABA51C4DC2C49DBBBA8`
+- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.8.exe`
+- 大小：`121,664,488` bytes
+- SHA256：`DA5D12B6ED5F72FC3ACFF584B8BA8BE5011C47998F1F62596146BB1ABE232E00`
+- blockmap SHA256：`11E0B27AFB8AA7113709D2E764A1E36C57207906FE70F2E4628F62D9839D6EA3`
 - 线上更新：`https://aicyld.com/downloads/junshi-desktop/latest.yml`
-- 线上版本：`0.6.7`
+- 线上版本：`0.6.8`
 - `latest.yml`、exe、blockmap 均返回 200，exe 支持 Range
 - 未签名
 
@@ -177,3 +180,18 @@ viral.restorePrevious=pass
 ```
 
 临时 workflow、transcript、session 已清理。
+
+## 场景变化抽帧验收
+
+同一条 61 秒画面文字视频：
+
+```text
+纯场景变化帧：35 字
+单一 4×3 拼图：165 字
+场景变化 + 均匀补帧：215 字
+frameCount：12
+frameStrategy：hybrid
+拼图：2 张 3×2
+```
+
+结论：场景变化帧必须保留均匀覆盖，且 12 帧不能压在一张图里。

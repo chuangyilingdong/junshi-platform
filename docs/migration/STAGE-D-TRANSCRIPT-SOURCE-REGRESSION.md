@@ -86,7 +86,7 @@ speech-both          transcript / mixed / 2788 字
 
 后 4 个扩展用例因未配置对应素材而跳过，不影响本轮必须通过项。
 
-生产 release：`/srv/junshi-platform/releases/20261102T063544Z`
+生产 release：`/srv/junshi-platform/releases/20261102T065138Z`
 
 回归结束后临时 session、workflow、transcript 均已清理。
 
@@ -99,3 +99,14 @@ visual 274 字
 → 恢复上一稿
 → visual 274 字完整恢复
 ```
+
+## 场景变化抽帧回归
+
+```text
+frameCount = 12
+frameStrategy = hybrid
+sheets = 2
+识别字符 = 215
+```
+
+纯场景帧和单张 12 帧拼图均出现准确率回退，已改为“8 个均匀基帧 + 最多 4 个场景变化帧”，并拆成两张 3×2 拼图。
