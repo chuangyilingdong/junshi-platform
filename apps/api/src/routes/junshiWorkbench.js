@@ -2652,7 +2652,7 @@ async function runTranscriptionPipeline(owner, transcriptId, job) {
       ? await arow('SELECT * FROM junshi_workbench_assets WHERE id=? AND owner_key=?', [transcript.asset_id, owner.key])
       : null;
     if (!assetRow) throw new Error('原始素材已被删除，无法转写');
-    await aq("UPDATE junshi_workbench_transcripts SET status='running', error='', updated_at=? WHERE id=? AND owner_key=?", [nowIso(), transcriptId, owner.key]);
+    await aq("UPDATE junshi_workbench_transcripts SET status='running', error='', text='', segments='[]', duration_seconds=0, updated_at=? WHERE id=? AND owner_key=?", [nowIso(), transcriptId, owner.key]);
     const policy = await getAiProviderPolicy();
     const asr = await seedanceAsrConfig(policy?.channels);
     if (!asr) throw Object.assign(new Error('转写渠道未配置（需要 seedance.nz 渠道 Key 或 JUNSHI_ASR_ENDPOINT/KEY）'), { code: 'WORKBENCH_ASR_NOT_CONFIGURED' });
@@ -4450,7 +4450,7 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
         row.stage = 'transcript';
         row.state = JSON.stringify(nextState);
       } else if (tsRow.status === 'failed') {
-        await wfUpdate(row.id, owner.key, { stage: 'extract_failed', state: JSON.stringify({ ...st, extractError: '这条内容的转写失败了（可能是纯音乐或太短），换一条试试' }) });
+        await wfUpdate(row.id, owner.key, { stage: 'extract_failed', state: JSON.stringify({ ...st, transcript: '', extractError: tsRow.error || '这条内容的转写失败了（可能是纯音乐或太短），换一条试试' }) });
         row.stage = 'extract_failed';
       }
     }

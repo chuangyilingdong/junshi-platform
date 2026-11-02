@@ -56,6 +56,8 @@ test('transcription pipeline has Chinese ASR controls, quality guards, retry and
   assert.match(service, /no_speech_prob/);
   assert.match(route, /transcriptQualityIssue\(transcriptText\)/);
   assert.match(route, /transcriptQualityIssue\(currentState\.transcript\)/);
+  assert.match(route, /text='', segments='\[\]', duration_seconds=0/);
+  assert.match(route, /extractError: tsRow\.error/);
   assert.match(route, /action === 'retry_transcript'/);
   assert.match(route, /\['transcript', 'extract_failed'\]\.includes\(wf\.stage\)/);
 });
