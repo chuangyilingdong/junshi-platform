@@ -11,6 +11,8 @@
 - 自动回滚：健康检查失败时切回上一 release
 - SSH 使用受限部署密钥：只能执行 `deploy <commit>` / `verify <commit>`，不能获得交互式 shell
 - 当前尚未配置 GitHub production secrets，首次真实工作流部署待执行
+- 2026-11-02 尝试配置时，当前 GitHub 账号无仓库 admin 权限：创建 environment 返回 403
+- 临时专用密钥未写入 GitHub，已从生产 authorized_keys 撤销并删除本地私钥
 
 ## 必填 Secrets
 

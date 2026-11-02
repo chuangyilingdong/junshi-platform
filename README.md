@@ -26,7 +26,7 @@
 - 旧 /junshi 全量逐页回归通过：4 页面 / 9 页签 / 7 画像分组 / 0 错误
 - observation-only 计费账本已实现并验证
 - 生产健康检查每 5 分钟运行，失败写 journal；支持可选 Webhook
-- 人工触发生产部署工作流与自动回滚已准备，production secrets 待配置
+- 人工触发生产部署工作流与自动回滚已准备，production secrets 待仓库管理员配置
 - GitHub Actions CI 已通过
 - `/api/junshi/*` 已分流到 `127.0.0.1:8790`
 - 原 `/api/*` 继续由网站服务 `8789` 处理
