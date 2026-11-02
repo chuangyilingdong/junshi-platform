@@ -22,6 +22,7 @@
 - 旧 `/junshi` 网页关键接口回归通过
 - observation-only 计费账本已实现并验证
 - 生产健康检查每 5 分钟运行，失败写 journal；支持可选 Webhook
+- GitHub Actions CI 已通过
 - `/api/junshi/*` 已分流到 `127.0.0.1:8790`
 - 原 `/api/*` 继续由网站服务 `8789` 处理
 - 切流记录见 `docs/migration/STAGE-D-FINAL-CUTOVER.md`
