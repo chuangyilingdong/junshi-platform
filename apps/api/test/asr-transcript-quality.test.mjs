@@ -73,7 +73,8 @@ test('no-speech video falls back to visual text extraction and marks the source'
   assert.match(route, /buildVisualTranscriptPrompt/);
   assert.match(route, /detectSceneTimes/);
   assert.match(route, /selectSceneSampleTimes/);
-  assert.match(route, /tile=4x3/);
+  assert.match(route, /tile=3x2/);
+  assert.match(route, /sheet-\$\{sheets\.length \+ 1\}/);
   assert.match(route, /visualMeta/);
   assert.match(route, /extractVisualTextFromAsset/);
   assert.match(route, /source: 'visual'/);

@@ -30,8 +30,8 @@ test('dense scene changes compress to twelve frames and keep first and last', ()
 });
 
 test('visual prompt records frame count and scene strategy', () => {
-  const prompt = buildVisualTranscriptPrompt({ duration: 61, frameCount: 12, frameStrategy: 'hybrid' });
-  assert.match(prompt, /12 帧拼图/);
+  const prompt = buildVisualTranscriptPrompt({ duration: 61, frameCount: 12, frameStrategy: 'hybrid', sheetCount: 2 });
+  assert.match(prompt, /12 帧拼图，分成 2 张拼图/);
   assert.match(prompt, /场景变化关键帧 \+ 均匀补帧/);
   assert.match(prompt, /detected=false/);
 });

@@ -2672,30 +2672,34 @@ async function extractVisualTextFromAsset(assetRow, providedBuffer = null) {
       } catch { /* 单帧失败时继续，不阻断整条素材 */ }
     }
     if (!frames.length) throw new Error('没有抽取到视频画面');
-    const contactSheet = path.join(dir, 'contact-sheet.jpg');
-    await runCommand('ffmpeg', [
-      '-y', '-framerate', '1', '-i', path.join(dir, 'frame-%03d.jpg'),
-      '-vf', 'tile=4x3:padding=6:margin=6', '-frames:v', '1', '-q:v', '4', contactSheet,
-    ], 120000);
-    const frameBuffer = await readFile(contactSheet);
-    if (!frameBuffer.length) throw new Error('画面拼图生成失败');
-    const dataUrl = `data:image/jpeg;base64,${frameBuffer.toString('base64')}`;
+    const sheets = [];
+    for (let offset = 0; offset < frames.length; offset += 6) {
+      const sheetPath = path.join(dir, `sheet-${sheets.length + 1}.jpg`);
+      await runCommand('ffmpeg', [
+        '-y', '-framerate', '1', '-start_number', String(offset + 1), '-i', path.join(dir, 'frame-%03d.jpg'),
+        '-vf', 'tile=3x2:padding=6:margin=6', '-frames:v', '1', '-q:v', '4', sheetPath,
+      ], 120000);
+      const sheetBuffer = await readFile(sheetPath);
+      if (sheetBuffer.length) sheets.push(sheetBuffer);
+    }
+    if (!sheets.length) throw new Error('画面拼图生成失败');
+    const imageBlocks = sheets.map((sheetBuffer) => ({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${sheetBuffer.toString('base64')}` } }));
     const result = await collectText(null, {
       system: WORKBENCH_SYSTEM,
       messages: [{ role: 'user', content: [
-        { type: 'text', text: buildVisualTranscriptPrompt({ duration, frameCount: frames.length, frameStrategy }) },
-        { type: 'image_url', image_url: { url: dataUrl } },
+        { type: 'text', text: buildVisualTranscriptPrompt({ duration, frameCount: frames.length, frameStrategy, sheetCount: sheets.length }) },
+        ...imageBlocks,
       ] }],
     });
     const parsed = firstJsonObject(result.text) || {};
-    if (parsed.detected === false) return { text: '', segments: [], duration, frameCount: frames.length, frameStrategy };
+    if (parsed.detected === false) return { text: '', segments: [], duration, frameCount: frames.length, frameStrategy, sheetCount: sheets.length };
     const text = String(parsed.text || '').trim().slice(0, 4000);
     const segments = (Array.isArray(parsed.segments) ? parsed.segments : [])
       .map((item) => String(item?.text || item || '').trim())
       .filter(Boolean)
       .slice(0, 30);
-    if (text.length < 6) return { text: '', segments: [], duration, frameCount: frames.length, frameStrategy };
-    return { text, segments: segments.length ? segments : [text], duration, frameCount: frames.length, frameStrategy, notes: String(parsed.notes || '').slice(0, 300) };
+    if (text.length < 6) return { text: '', segments: [], duration, frameCount: frames.length, frameStrategy, sheetCount: sheets.length };
+    return { text, segments: segments.length ? segments : [text], duration, frameCount: frames.length, frameStrategy, sheetCount: sheets.length, notes: String(parsed.notes || '').slice(0, 300) };
   } finally {
     if (dir) await rm(dir, { recursive: true, force: true }).catch(() => {});
   }
@@ -2717,7 +2721,7 @@ function transcriptSourceFromSegments(segments) {
 function composeTranscriptResult(speech, visual) {
   const parts = [];
   if (speech?.text?.trim()) parts.push({ source: 'speech', text: speech.text.trim(), segments: speech.segments || [], duration: Number(speech.duration) || 0 });
-  if (visual?.text?.trim()) parts.push({ source: 'visual', text: visual.text.trim(), segments: (visual.segments || []).map((item, index) => ({ start: index * 3, end: index * 3 + 3, text: String(item), source: 'visual', frameCount: Number(visual.frameCount) || 0, frameStrategy: visual.frameStrategy || 'uniform' })), duration: Number(visual.duration) || 0 });
+  if (visual?.text?.trim()) parts.push({ source: 'visual', text: visual.text.trim(), segments: (visual.segments || []).map((item, index) => ({ start: index * 3, end: index * 3 + 3, text: String(item), source: 'visual', frameCount: Number(visual.frameCount) || 0, frameStrategy: visual.frameStrategy || 'uniform', sheetCount: Number(visual.sheetCount) || 1 })), duration: Number(visual.duration) || 0 });
   if (!parts.length) return { text: '', segments: [], duration: 0, source: '' };
   const text = parts.length > 1
     ? parts.map((part) => `【${part.source === 'speech' ? '口播' : '画面文字'}】\n${part.text}`).join('\n\n')
@@ -4591,7 +4595,7 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
         try { transcriptSegments = JSON.parse(tsRow.segments || '[]'); } catch { transcriptSegments = []; }
         const transcriptSource = transcriptSourceFromSegments(transcriptSegments);
         const visualMeta = transcriptSegments.find((segment) => segment?.source === 'visual' && segment?.frameCount);
-        const nextState = { ...st, transcript: transcriptText.slice(0, 4000), transcriptNickname: tsRow.nickname || '', transcriptSource, transcriptSources: [...new Set(transcriptSegments.map((segment) => segment?.source || 'speech'))], transcriptSegments: transcriptSegments.slice(0, 200), visualMeta: visualMeta ? { frameCount: Number(visualMeta.frameCount) || 0, frameStrategy: visualMeta.frameStrategy || 'uniform' } : null, message: '' };
+        const nextState = { ...st, transcript: transcriptText.slice(0, 4000), transcriptNickname: tsRow.nickname || '', transcriptSource, transcriptSources: [...new Set(transcriptSegments.map((segment) => segment?.source || 'speech'))], transcriptSegments: transcriptSegments.slice(0, 200), visualMeta: visualMeta ? { frameCount: Number(visualMeta.frameCount) || 0, frameStrategy: visualMeta.frameStrategy || 'uniform', sheetCount: Number(visualMeta.sheetCount) || 1 } : null, message: '' };
         await wfUpdate(row.id, owner.key, { stage: 'transcript', state: JSON.stringify(nextState) });
         row.stage = 'transcript';
         row.state = JSON.stringify(nextState);

@@ -43,9 +43,10 @@ export function selectSceneSampleTimes({ sceneTimes = [], duration = 0, maxSampl
 export function visualFrameStrategy(sceneTimes = []) {
   return uniqueSorted(sceneTimes).length > 0 ? 'hybrid' : 'uniform';
 }
-export function buildVisualTranscriptPrompt({ duration = 0, frameCount = 0, frameStrategy = 'uniform' } = {}) {
+export function buildVisualTranscriptPrompt({ duration = 0, frameCount = 0, frameStrategy = 'uniform', sheetCount = 1 } = {}) {
   const strategy = frameStrategy === 'hybrid' || frameStrategy === 'scene' ? '场景变化关键帧 + 均匀补帧' : '均匀采样帧';
-  return `【任务】这是一条抖音视频的 ${frameCount || '多'} 帧拼图（${strategy}），按从左到右、从上到下的顺序阅读。请只提取画面中明确可见的文案、字幕、标题、口播字幕和必要的英文产品名，整理成一条可读文案。
+  const sheetText = Number(sheetCount) > 1 ? `，分成 ${Number(sheetCount)} 张拼图` : '';
+  return `【任务】这是一条抖音视频的 ${frameCount || '多'} 帧拼图${sheetText}（${strategy}）。请按图片先后顺序阅读，每张图从左到右、从上到下。请只提取画面中明确可见的文案、字幕、标题、口播字幕和必要的英文产品名，整理成一条可读文案。
 
 【不要提取】
 - 抖音界面、用户名、头像、点赞/评论/收藏数字、按钮、进度条、水印、时间码。
