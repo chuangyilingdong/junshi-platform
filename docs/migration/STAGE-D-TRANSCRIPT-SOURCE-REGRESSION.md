@@ -86,6 +86,16 @@ speech-both          transcript / mixed / 2788 字
 
 后 4 个扩展用例因未配置对应素材而跳过，不影响本轮必须通过项。
 
-生产 release：`/srv/junshi-platform/releases/20261102T062208Z`
+生产 release：`/srv/junshi-platform/releases/20261102T063544Z`
 
 回归结束后临时 session、workflow、transcript 均已清理。
+
+## 工作流内切换验收
+
+```text
+visual 274 字
+→ 切换 speech
+→ extract_failed
+→ 恢复上一稿
+→ visual 274 字完整恢复
+```

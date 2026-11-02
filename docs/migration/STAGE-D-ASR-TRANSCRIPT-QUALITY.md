@@ -104,6 +104,8 @@ API：
 - 画面文字回退生成 8 帧拼图并标记 visual 来源
 - transcriptMode 在重试 payload 中保留
 - 自动、口播、画面文字、口播+画面文字四种模式
+- 同工作流切换来源并保留上一稿快照
+- 新提取失败后恢复上一稿
 
 桌面端：
 
@@ -113,6 +115,8 @@ viral.manualFallback.retry=1
 viral.manualFallback.manual=1
 viral.manualPlanCount=3
 viral.visualFallback=pass
+viral.transcriptModeSwitchCount=4
+viral.restorePrevious=pass
 ```
 
 ## 真实生产验收
@@ -138,24 +142,38 @@ viral.visualFallback=pass
 
 ## 生产状态
 
-- release：`/srv/junshi-platform/releases/20261102T062208Z`
-- production commit：`79c5b792a58d355360fb2b4a96c815f2329a4586`
-- CI：`41399416143`，success
+- release：`/srv/junshi-platform/releases/20261102T063544Z`
+- production commit：`ea66f1adfa0c1fc4566e761f6b106681dbee5a08`
+- CI：`41400803460`，success
 - `junshi-api`、Nginx、旧网站服务：active
 - `junshi-api` NRestarts：0
 - health / ready：通过
 
-## 客户端 0.6.6
+## 客户端 0.6.7
 
-- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.6.exe`
-- 大小：`121,664,079` bytes
-- SHA256：`FB03C481C7FD0E605A57E6C5ED7325F823A9CE2CC2540E97326D9AB9B164DBE3`
-- blockmap SHA256：`57D8A7A0EB08D87B6F2C00D50A8F1630621CA2886F8C655F5876842BE63850E0`
+- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.7.exe`
+- 大小：`121,664,346` bytes
+- SHA256：`0D585530D34FD9BB2641DF46A3FE4E82164573000A44DFF6AEE6E889AACD5656`
+- blockmap SHA256：`4ED67051B3345B835BD315C6D68EDEB2D304DF90A3185ABA51C4DC2C49DBBBA8`
 - 线上更新：`https://aicyld.com/downloads/junshi-desktop/latest.yml`
-- 线上版本：`0.6.6`
+- 线上版本：`0.6.7`
 - `latest.yml`、exe、blockmap 均返回 200，exe 支持 Range
 - 未签名
 
 ## 边界
 
 当前策略是“人声口播优先，画面文字回退”。OCR 结果只作为待确认稿，不直接进入改写；清晰度不足、文字被遮挡或没有文字时仍会要求手动粘贴。
+
+## 工作流内切换来源验收
+
+真实生产验收：
+
+```text
+初始来源：visual / 274 字
+切换来源：speech
+结果：extract_failed
+上一稿：previousTranscript 快照存在
+恢复上一稿：visual / 原 274 字完整恢复
+```
+
+临时 workflow、transcript、session 已清理。

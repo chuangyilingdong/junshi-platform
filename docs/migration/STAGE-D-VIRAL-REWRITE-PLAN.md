@@ -85,10 +85,10 @@ viral.planSummary=true
 
 ## 当前状态
 
-- API 已部署到生产 release `20261102T062208Z`
-- 客户端 `0.6.6` 已构建并通过 5 套自动测试
+- API 已部署到生产 release `20261102T063544Z`
+- 客户端 `0.6.7` 已构建并通过 5 套自动测试
 - 真实 Provider 验收通过
-- 0.6.6 已上传更新渠道，`latest.yml` 已切到 0.6.6
+- 0.6.7 已上传更新渠道，`latest.yml` 已切到 0.6.7
 
 ## 真实 Provider 验收
 
@@ -129,11 +129,11 @@ viral.planSummary=true
 临时 compute_attempts：0
 ```
 
-## 客户端 0.6.6
+## 客户端 0.6.7
 
-- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.6.exe`
-- 大小：`121,664,079` bytes
-- SHA256：`FB03C481C7FD0E605A57E6C5ED7325F823A9CE2CC2540E97326D9AB9B164DBE3`
+- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.7.exe`
+- 大小：`121,664,346` bytes
+- SHA256：`0D585530D34FD9BB2641DF46A3FE4E82164573000A44DFF6AEE6E889AACD5656`
 - 未签名
 - 安装版真实账号回归：通过
 - 已上传 `https://aicyld.com/downloads/junshi-desktop/`
