@@ -16,7 +16,7 @@ test('sparse scene changes are retained and filled with uniform frames', () => {
   const times = selectSceneSampleTimes({ sceneTimes: scenes, duration: 60, maxSamples: 12 });
   assert.equal(times.length, 12);
   assert.ok(scenes.every((scene) => times.some((time) => Math.abs(time - scene) < 0.02)));
-  assert.equal(visualFrameStrategy(scenes), 'uniform');
+  assert.equal(visualFrameStrategy(scenes), 'hybrid');
 });
 
 test('dense scene changes compress to twelve frames and keep first and last', () => {
@@ -26,12 +26,12 @@ test('dense scene changes compress to twelve frames and keep first and last', ()
   assert.equal(times[0], 0);
   assert.ok(times.at(-1) > 59);
   assert.equal(new Set(times).size, times.length);
-  assert.equal(visualFrameStrategy(scenes), 'scene');
+  assert.equal(visualFrameStrategy(scenes), 'hybrid');
 });
 
 test('visual prompt records frame count and scene strategy', () => {
-  const prompt = buildVisualTranscriptPrompt({ duration: 61, frameCount: 12, frameStrategy: 'scene' });
+  const prompt = buildVisualTranscriptPrompt({ duration: 61, frameCount: 12, frameStrategy: 'hybrid' });
   assert.match(prompt, /12 帧拼图/);
-  assert.match(prompt, /场景变化关键帧/);
+  assert.match(prompt, /场景变化关键帧 \+ 均匀补帧/);
   assert.match(prompt, /detected=false/);
 });

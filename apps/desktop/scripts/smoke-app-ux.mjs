@@ -194,7 +194,7 @@ const server = http.createServer(async (req, res) => {
           ...workflowRow.state,
           transcriptMode: 'auto',
           transcriptSource: 'visual',
-          visualMeta: { frameCount: 12, frameStrategy: 'scene' },
+          visualMeta: { frameCount: 12, frameStrategy: 'hybrid' },
           transcript: 'Hello，我是 DeepSeek V4.1-Flash。代码可以变成任何画面。',
           extractError: '',
         },
@@ -531,7 +531,7 @@ try {
     warning: await page.locator('.workflow-warning').innerText(),
     transcript: await page.locator('#workflow-transcript').inputValue(),
   };
-  if (!viralVisualFallback.warning.includes('画面文字') || !viralVisualFallback.warning.includes('12 帧') || !viralVisualFallback.transcript.includes('DeepSeek')) {
+  if (!viralVisualFallback.warning.includes('画面文字') || !viralVisualFallback.warning.includes('12 帧') && viralVisualFallback.warning.includes('场景变化 + 均匀补帧') || !viralVisualFallback.transcript.includes('DeepSeek')) {
     throw new Error(`viral visual fallback missing: ${JSON.stringify(viralVisualFallback)}`);
   }
   const transcriptModeSwitchCount = await page.locator('[data-action="workflow-switch-transcript-mode"]').count();

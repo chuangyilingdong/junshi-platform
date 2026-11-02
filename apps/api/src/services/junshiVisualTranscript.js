@@ -25,29 +25,26 @@ export function selectSceneSampleTimes({ sceneTimes = [], duration = 0, maxSampl
   const end = total > 0.12 ? total - 0.08 : Math.max(0, total);
   const scenes = uniqueSorted(sceneTimes).filter((value) => value >= 0.04 && value <= end + 0.04);
   if (limit === 1) return [0];
-  let selected;
-  if (scenes.length >= Math.max(1, limit - 2)) {
-    selected = [0, ...pickEvenly(scenes, Math.max(1, limit - 2)), end];
-  } else {
-    selected = [0, end, ...scenes];
-    const uniform = Array.from({ length: limit }, (_, index) => (end * index) / (limit - 1));
-    for (const time of pickEvenly(uniform, limit)) {
-      if (selected.length >= limit) break;
-      if (selected.every((value) => Math.abs(value - time) >= 0.12)) selected.push(time);
-    }
-    for (const time of uniform) {
-      if (selected.length >= limit) break;
-      if (!selected.some((value) => Math.abs(value - time) < 0.01)) selected.push(time);
-    }
+  const baseCount = Math.min(limit, Math.max(1, Math.floor((limit * 2) / 3)));
+  const uniform = Array.from({ length: limit }, (_, index) => (end * index) / (limit - 1));
+  const selected = pickEvenly(uniform, baseCount);
+  const isNear = (time) => selected.some((value) => Math.abs(value - time) < 0.35);
+  const sceneRoom = Math.max(0, limit - selected.length);
+  for (const time of pickEvenly(scenes.filter((value) => !isNear(value)), sceneRoom)) {
+    selected.push(time);
+  }
+  for (const time of uniform) {
+    if (selected.length >= limit) break;
+    if (!selected.some((value) => Math.abs(value - time) < 0.02)) selected.push(time);
   }
   return uniqueSorted(selected).slice(0, limit);
 }
-export function visualFrameStrategy(sceneTimes = []) {
-  return uniqueSorted(sceneTimes).length >= 6 ? 'scene' : 'uniform';
-}
 
+export function visualFrameStrategy(sceneTimes = []) {
+  return uniqueSorted(sceneTimes).length > 0 ? 'hybrid' : 'uniform';
+}
 export function buildVisualTranscriptPrompt({ duration = 0, frameCount = 0, frameStrategy = 'uniform' } = {}) {
-  const strategy = frameStrategy === 'scene' ? '场景变化关键帧' : '均匀采样帧';
+  const strategy = frameStrategy === 'hybrid' || frameStrategy === 'scene' ? '场景变化关键帧 + 均匀补帧' : '均匀采样帧';
   return `【任务】这是一条抖音视频的 ${frameCount || '多'} 帧拼图（${strategy}），按从左到右、从上到下的顺序阅读。请只提取画面中明确可见的文案、字幕、标题、口播字幕和必要的英文产品名，整理成一条可读文案。
 
 【不要提取】
