@@ -467,6 +467,11 @@ textarea::placeholder, input::placeholder { color: #506e84; }
 .workflow-composer-form { display: grid; gap: 13px; margin-top: 18px; }
 .workflow-composer-form .production-field.full { grid-column: auto; }
 .workflow-source-tabs { margin-bottom: 2px; }
+.workflow-transcript-mode { display: grid; gap: 9px; padding: 11px 12px; border: 1px solid #193b53; border-radius: 10px; background: #081823; }
+.workflow-transcript-mode > div:first-child { display: flex; align-items: baseline; gap: 9px; }
+.workflow-transcript-mode span { color: #b9d8e9; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+.workflow-transcript-mode p { color: #7395aa; font-size: 9.5px; line-height: 1.5; }
+.workflow-transcript-mode .chip-group { gap: 6px; }
 .workflow-mode-switch { display: flex; flex-wrap: wrap; gap: 7px; }
 .workflow-composer-tip { padding: 10px 12px; border: 1px solid #1a4059; border-radius: 9px; color: #7395aa; background: #091b29; font-size: 10px; line-height: 1.55; }
 .workflow-shell-foot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line-soft); }

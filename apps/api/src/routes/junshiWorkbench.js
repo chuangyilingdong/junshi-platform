@@ -2650,10 +2650,10 @@ function buildVisualTranscriptPrompt(duration) {
 }
 
 /** 口播转写失败后的画面文字回退：8 帧拼图交给多模态 TEXT 通道识别。 */
-async function extractVisualTextFromAsset(assetRow) {
+async function extractVisualTextFromAsset(assetRow, providedBuffer = null) {
   if (!assetRow || !/^video\//.test(String(assetRow.mime_type || ''))) return { text: '', segments: [], duration: 0 };
   if (await textProviderIsMock().catch(() => false)) return { text: '', segments: [], duration: 0 };
-  const buffer = await assetBytes(assetRow);
+  const buffer = providedBuffer || await assetBytes(assetRow);
   if (!buffer.length) throw new Error('视频文件是空的');
   if (buffer.length > 200 * 1024 * 1024) throw new Error('视频超过 200MB，暂时无法提取画面文字');
   let dir = null;
@@ -2693,23 +2693,52 @@ async function extractVisualTextFromAsset(assetRow) {
   }
 }
 
+const TRANSCRIPT_MODES = new Set(['auto', 'speech', 'visual', 'both']);
+function normalizeTranscriptMode(value) {
+  const mode = String(value || '').trim().toLowerCase();
+  return TRANSCRIPT_MODES.has(mode) ? mode : 'auto';
+}
+function transcriptSourceFromSegments(segments) {
+  const sources = new Set((Array.isArray(segments) ? segments : []).map((segment) => String(segment?.source || 'speech')).filter(Boolean));
+  if (sources.has('speech') && sources.has('visual')) return 'mixed';
+  if (sources.has('visual')) return 'visual';
+  return 'speech';
+}
+function composeTranscriptResult(speech, visual) {
+  const parts = [];
+  if (speech?.text?.trim()) parts.push({ source: 'speech', text: speech.text.trim(), segments: speech.segments || [], duration: Number(speech.duration) || 0 });
+  if (visual?.text?.trim()) parts.push({ source: 'visual', text: visual.text.trim(), segments: (visual.segments || []).map((item, index) => ({ start: index * 3, end: index * 3 + 3, text: String(item), source: 'visual' })), duration: Number(visual.duration) || 0 });
+  if (!parts.length) return { text: '', segments: [], duration: 0, source: '' };
+  const text = parts.length > 1
+    ? parts.map((part) => `【${part.source === 'speech' ? '口播' : '画面文字'}】\n${part.text}`).join('\n\n')
+    : parts[0].text;
+  const segments = parts.flatMap((part) => part.segments.map((segment) => ({ ...segment, source: part.source })));
+  return {
+    text,
+    segments,
+    duration: Math.max(...parts.map((part) => part.duration)),
+    source: parts.length > 1 ? 'mixed' : parts[0].source,
+  };
+}
+
 /** 后台转写一条素材：写档案行（running）→ whisper → 回填。返回档案 id。 */
-async function startTranscription(owner, { assetRow, source, title, sourceUrl, nickname, accountId }) {
+async function startTranscription(owner, { assetRow, source, title, sourceUrl, nickname, accountId, transcriptMode = 'auto' }) {
   const transcriptId = id('jwts');
+  const mode = normalizeTranscriptMode(transcriptMode);
   const at = nowIso();
   // MySQL 的 TEXT 列不能有字面量默认值：INSERT 必须显式给全 text/segments/error/duration。
   await aq('INSERT INTO junshi_workbench_transcripts (id,owner_key,org_id,account_id,asset_id,source,title,source_url,nickname,status,error,text,segments,duration_seconds,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
     [transcriptId, owner.key, owner.orgId, accountId, assetRow?.id || null, source, String(title || '').slice(0, 300), String(sourceUrl || '').slice(0, 1000), String(nickname || '').slice(0, 200), 'running', '', '', '[]', 0, at, at]);
   const job = jobStart(owner, '视频转写', String(title || '').slice(0, 60), {
     entityType: 'transcript', entityId: transcriptId,
-    payload: { assetId: assetRow?.id || '', source, title: String(title || '').slice(0, 300), sourceUrl, nickname, accountId },
+    payload: { assetId: assetRow?.id || '', source, title: String(title || '').slice(0, 300), sourceUrl, nickname, accountId, transcriptMode: mode },
   });
   await job.promise;
   void runTranscriptionPipeline(owner, transcriptId, job);
   return transcriptId;
 }
 
-/** 转写执行体（首次与失败重试共用）：只认档案行，不重复建档案。 */
+/** 转写执行体（首次与失败重试共用）：按任务 payload 里的 transcriptMode 执行。 */
 async function runTranscriptionPipeline(owner, transcriptId, job) {
   try {
     const transcript = await arow('SELECT * FROM junshi_workbench_transcripts WHERE id=? AND owner_key=?', [transcriptId, owner.key]);
@@ -2718,44 +2747,54 @@ async function runTranscriptionPipeline(owner, transcriptId, job) {
       ? await arow('SELECT * FROM junshi_workbench_assets WHERE id=? AND owner_key=?', [transcript.asset_id, owner.key])
       : null;
     if (!assetRow) throw new Error('原始素材已被删除，无法转写');
+    const mode = normalizeTranscriptMode(jobPayload(job).transcriptMode);
     await aq("UPDATE junshi_workbench_transcripts SET status='running', error='', text='', segments='[]', duration_seconds=0, updated_at=? WHERE id=? AND owner_key=?", [nowIso(), transcriptId, owner.key]);
-    const policy = await getAiProviderPolicy();
-    const asr = await seedanceAsrConfig(policy?.channels);
-    if (!asr) throw Object.assign(new Error('转写渠道未配置（需要 seedance.nz 渠道 Key 或 JUNSHI_ASR_ENDPOINT/KEY）'), { code: 'WORKBENCH_ASR_NOT_CONFIGURED' });
     const buffer = await assetBytes(assetRow);
-    let result = null;
+    let speech = null;
+    let visual = null;
     let speechError = null;
-    try {
-      result = await transcribeMediaReliable({ endpoint: asr.endpoint, apiKey: asr.apiKey, buffer, fileName: assetRow.file_name || `${transcriptId}.mp4`, mimeType: assetRow.mime_type || 'video/mp4' });
-    } catch (error) {
-      speechError = error;
-    }
-    if (result?.text?.trim()) {
-      const speechSegments = (result.segments || []).map((segment) => ({ ...segment, source: 'speech' }));
-      await aq('UPDATE junshi_workbench_transcripts SET status=?, text=?, segments=?, duration_seconds=?, error="", updated_at=? WHERE id=?',
-        ['succeeded', result.text.slice(0, 100000), JSON.stringify(speechSegments.slice(0, 2000)), Number(result.duration) || 0, nowIso(), transcriptId]);
-      await jobDone(job, 'succeeded', `口播转写完成：${speechSegments.length} 段 / ${Math.round(result.duration)} 秒`).catch(() => {});
-      return;
-    }
-
-    let visual = { text: '', segments: [], duration: 0 };
     let visualError = null;
-    try {
-      visual = await extractVisualTextFromAsset(assetRow);
-    } catch (error) {
-      visualError = error;
+
+    if (['auto', 'speech', 'both'].includes(mode)) {
+      try {
+        const policy = await getAiProviderPolicy();
+        const asr = await seedanceAsrConfig(policy?.channels);
+        if (!asr) throw Object.assign(new Error('转写渠道未配置（需要 seedance.nz 渠道 Key 或 JUNSHI_ASR_ENDPOINT/KEY）'), { code: 'WORKBENCH_ASR_NOT_CONFIGURED' });
+        speech = await transcribeMediaReliable({ endpoint: asr.endpoint, apiKey: asr.apiKey, buffer, fileName: assetRow.file_name || `${transcriptId}.mp4`, mimeType: assetRow.mime_type || 'video/mp4' });
+      } catch (error) {
+        speechError = error;
+      }
     }
-    if (visual.text) {
-      const visualSegments = visual.segments.map((item, index) => ({ start: index * 3, end: index * 3 + 3, text: item, source: 'visual' }));
+
+    const needsVisual = mode === 'visual' || mode === 'both' || (mode === 'auto' && !speech?.text?.trim());
+    if (needsVisual) {
+      try {
+        visual = await extractVisualTextFromAsset(assetRow, buffer);
+      } catch (error) {
+        visualError = error;
+      }
+    }
+
+    const combined = composeTranscriptResult(speech, visual);
+    if (combined.text) {
       await aq('UPDATE junshi_workbench_transcripts SET status=?, text=?, segments=?, duration_seconds=?, error="", updated_at=? WHERE id=?',
-        ['succeeded', visual.text.slice(0, 100000), JSON.stringify(visualSegments.slice(0, 2000)), Number(visual.duration) || 0, nowIso(), transcriptId]);
-      await jobDone(job, 'succeeded', `口播未识别，已从画面文字提取 ${visualSegments.length} 段`).catch(() => {});
+        ['succeeded', combined.text.slice(0, 100000), JSON.stringify(combined.segments.slice(0, 2000)), Number(combined.duration) || 0, nowIso(), transcriptId]);
+      const sourceLabel = combined.source === 'mixed' ? '口播 + 画面文字' : combined.source === 'visual' ? '画面文字' : '口播';
+      await jobDone(job, 'succeeded', `${sourceLabel}提取完成：${combined.segments.length} 段 / ${Math.round(combined.duration)} 秒`).catch(() => {});
       return;
     }
 
-    if (speechError) throw speechError;
-    if (visualError) throw Object.assign(new Error(`没有识别到清晰口播，画面文字提取也失败：${String(visualError.message || visualError).slice(0, 500)}`), { code: 'WORKBENCH_VISUAL_TRANSCRIPT_FAILED' });
-    throw Object.assign(new Error('没有识别到清晰口播，画面中也没有可读文字。请手动粘贴文案，或换一条有人声/字幕更清楚的视频。'), { code: 'WORKBENCH_TRANSCRIPT_EMPTY' });
+    const modeLabel = { auto: '自动识别', speech: '只提取口播', visual: '只提取画面文字', both: '口播 + 画面文字' }[mode];
+    if (mode === 'speech') {
+      if (speechError) throw speechError;
+      throw Object.assign(new Error('没有识别到清晰口播。请切换为“画面文字”或“口播 + 画面文字”，也可以手动粘贴文案。'), { code: 'WORKBENCH_SPEECH_EMPTY' });
+    }
+    if (mode === 'visual') {
+      if (visualError) throw visualError;
+      throw Object.assign(new Error('画面中没有可读文字。请切换为“口播”或“口播 + 画面文字”，也可以手动粘贴文案。'), { code: 'WORKBENCH_VISUAL_EMPTY' });
+    }
+    const detail = [speechError, visualError].map((error) => String(error?.message || error || '')).filter(Boolean).join('；');
+    throw Object.assign(new Error(detail ? `${modeLabel}没有拿到可用文案：${detail.slice(0, 800)}` : '没有识别到清晰口播，画面中也没有可读文字。请手动粘贴文案，或换一条更清楚的视频。'), { code: 'WORKBENCH_TRANSCRIPT_EMPTY' });
   } catch (error) {
     const message = String(error?.message || error).slice(0, 1000);
     await aq('UPDATE junshi_workbench_transcripts SET status=?, error=?, updated_at=? WHERE id=?',
@@ -2763,7 +2802,6 @@ async function runTranscriptionPipeline(owner, transcriptId, job) {
     await jobDone(job, 'failed', message).catch(() => {});
   }
 }
-
 /* ───────────── 十二期 · 抖音主页读取（官方接口 → 浏览器旁路 → 明确引导） ───────────── */
 /**
  * 三层降级：
@@ -4541,8 +4579,8 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
         }
         let transcriptSegments = [];
         try { transcriptSegments = JSON.parse(tsRow.segments || '[]'); } catch { transcriptSegments = []; }
-        const transcriptSource = transcriptSegments.some((segment) => segment?.source === 'visual') ? 'visual' : 'speech';
-        const nextState = { ...st, transcript: transcriptText.slice(0, 4000), transcriptNickname: tsRow.nickname || '', transcriptSource, transcriptSegments: transcriptSegments.slice(0, 200), message: '' };
+        const transcriptSource = transcriptSourceFromSegments(transcriptSegments);
+        const nextState = { ...st, transcript: transcriptText.slice(0, 4000), transcriptNickname: tsRow.nickname || '', transcriptSource, transcriptSources: [...new Set(transcriptSegments.map((segment) => segment?.source || 'speech'))], transcriptSegments: transcriptSegments.slice(0, 200), message: '' };
         await wfUpdate(row.id, owner.key, { stage: 'transcript', state: JSON.stringify(nextState) });
         row.stage = 'transcript';
         row.state = JSON.stringify(nextState);
@@ -4599,7 +4637,9 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
         if (!tsRow) throw errors.notFound('转写档案不存在', 'NOT_FOUND');
         if (tsRow.status === 'succeeded') {
           stage = 'transcript';
-          state = { sourceType, sourceLabel: tsRow.title || '转写档案', transcript: String(tsRow.text || '').slice(0, 4000), transcriptId: tsRow.id, transcriptNickname: tsRow.nickname || '' };
+          let transcriptSegments = [];
+          try { transcriptSegments = JSON.parse(tsRow.segments || '[]'); } catch { transcriptSegments = []; }
+          state = { sourceType, sourceLabel: tsRow.title || '转写档案', transcript: String(tsRow.text || '').slice(0, 4000), transcriptId: tsRow.id, transcriptNickname: tsRow.nickname || '', transcriptSource: transcriptSourceFromSegments(transcriptSegments), transcriptSegments: transcriptSegments.slice(0, 200) };
         } else if (tsRow.status === 'running') {
           stage = 'extracting';
           state = { sourceType, sourceLabel: tsRow.title || '转写档案', transcriptId: tsRow.id, message: '正在等待这条档案的转写完成…' };
@@ -4607,13 +4647,14 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
           throw errors.badRequest('这条档案转写失败，请重新采集或换一条', 'WORKBENCH_TRANSCRIPT_NOT_READY');
         }
       } else if (sourceType === 'link') {
+        const transcriptMode = normalizeTranscriptMode(input.transcriptMode);
         const shareText = text(input.shareText).slice(0, 2000);
         if (!shareText) throw errors.badRequest('请粘贴抖音分享内容或链接', 'VALIDATION_ERROR', { field: 'shareText' });
         const target = await resolveDouyinTarget(shareText).catch((error) => { throw errors.badRequest(error.message, 'DOUYIN_RESOLVE_FAILED'); });
         if (target.kind !== 'video') throw errors.badRequest('这是主页链接；爆款复刻需要单条作品，请粘贴作品分享', 'VALIDATION_ERROR');
         douyinRateLimit(owner.key);
         stage = 'extracting';
-        state = { sourceType, sourceLabel: '抖音爆款链接', message: '正在下载这条作品并提取口播文案…' };
+        state = { sourceType, sourceLabel: '抖音爆款链接', transcriptMode, message: '正在下载这条作品并提取文案…' };
         void (async () => {
           try {
             const video = await fetchDouyinVideo(target.id);
@@ -4624,7 +4665,7 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
             await aq('INSERT INTO junshi_workbench_assets (id,owner_key,org_id,account_id,file_name,storage_key,storage_backend,mime_type,kind,file_size,folder,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
               [assetId, owner.key, owner.orgId, accountId, stored.fileName, stored.storageKey, stored.storageBackend || 'local', stored.mimeType || 'video/mp4', 'video', stored.fileSize || buffer.length, '抖音采集', nowIso()]);
             const assetRow = await arow('SELECT * FROM junshi_workbench_assets WHERE id=?', [assetId]);
-            const transcriptId = await startTranscription(owner, { assetRow, source: 'douyin', title: video.desc || `抖音视频 ${video.awemeId}`, sourceUrl: `https://www.douyin.com/video/${video.awemeId}`, nickname: video.nickname, accountId });
+            const transcriptId = await startTranscription(owner, { assetRow, source: 'douyin', title: video.desc || `抖音视频 ${video.awemeId}`, sourceUrl: `https://www.douyin.com/video/${video.awemeId}`, nickname: video.nickname, accountId, transcriptMode });
             await wfUpdate(wfId, owner.key, { state: JSON.stringify({ ...state, transcriptId }) });
           } catch (error) {
             await wfUpdate(wfId, owner.key, { stage: 'extract_failed', state: JSON.stringify({ ...state, extractError: String(error?.message || error).slice(0, 400) }) }).catch(() => {});
@@ -4632,13 +4673,14 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
         })();
         state = { ...state };
       } else if (sourceType === 'upload') {
+        const transcriptMode = normalizeTranscriptMode(input.transcriptMode);
         const assetRow = await arow('SELECT * FROM junshi_workbench_assets WHERE id=? AND owner_key=?', [text(input.assetId), owner.key]);
         if (!assetRow) throw errors.notFound('先上传视频素材（素材库），再作为复刻来源', 'NOT_FOUND');
         if (!/^(video|audio)\//.test(String(assetRow.mime_type || ''))) throw errors.badRequest('复刻来源需要是视频或音频素材', 'VALIDATION_ERROR');
         douyinRateLimit(owner.key);
         stage = 'extracting';
-        state = { sourceType, sourceLabel: assetRow.file_name || '本地上传视频', message: '正在提取这条视频的口播文案…' };
-        const transcriptId = await startTranscription(owner, { assetRow, source: 'upload', title: assetRow.file_name || '本地上传视频', sourceUrl: '', nickname: '', accountId });
+        state = { sourceType, sourceLabel: assetRow.file_name || '本地上传视频', transcriptMode, message: '正在提取这条视频的文案…' };
+        const transcriptId = await startTranscription(owner, { assetRow, source: 'upload', title: assetRow.file_name || '本地上传视频', sourceUrl: '', nickname: '', accountId, transcriptMode });
         state.transcriptId = transcriptId;
       } else {
         throw errors.badRequest('请选择一种爆款来源', 'VALIDATION_ERROR', { field: 'sourceType' });

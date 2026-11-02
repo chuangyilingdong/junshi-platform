@@ -412,21 +412,31 @@ function renderWorkflowComposer() {
     const source = composer.sourceType || 'text';
     const readyTranscripts = (state.transcripts || []).filter((item) => item.status === 'succeeded' && item.text);
     const sourceTabs = `<div class="chip-group workflow-source-tabs">${[['text', '现有文案'], ['transcript', `转写档案${readyTranscripts.length ? ` ${readyTranscripts.length}` : ''}`], ['link', '抖音作品链接'], ['upload', '上传视频']].map(([value, label]) => `<button type="button" class="choice-chip${source === value ? ' active' : ''}" data-action="workflow-viral-source" data-source="${value}">${label}</button>`).join('')}</div>`;
+    const transcriptMode = composer.transcriptMode || 'auto';
+    const modeOptions = [
+      ['auto', '自动（推荐）', '有口播用口播，没有口播再读画面文字'],
+      ['speech', '只要口播', '只识别视频里实际说出的内容'],
+      ['visual', '只要画面文字', '只识别画面字幕、标题和文字'],
+      ['both', '口播 + 画面', '两份都识别，合并后由你确认'],
+    ];
+    const modePicker = ['link', 'upload'].includes(source)
+      ? `<div class="workflow-transcript-mode"><div><span>转写来源</span><p>${escapeHtml((modeOptions.find(([value]) => value === transcriptMode) || modeOptions[0])[2])}</p></div><div class="chip-group">${modeOptions.map(([value, label]) => `<button type="button" class="choice-chip${transcriptMode === value ? ' active' : ''}" data-action="workflow-transcript-mode" data-mode="${value}">${label}</button>`).join('')}</div></div>`
+      : '';
     const sourceInput = source === 'text'
       ? `<label class="production-field full"><span>爆款原文</span><textarea id="workflow-viral-text" rows="8" maxlength="4000" placeholder="把同行的口播或文案粘进来"></textarea></label>`
       : source === 'link'
         ? `<label class="production-field full"><span>抖音分享内容 / 单条作品链接</span><textarea id="workflow-viral-link" rows="4" maxlength="2000" placeholder="复制抖音分享口令，或粘贴单条作品链接"></textarea></label>`
         : source === 'upload'
-          ? `<div class="workflow-composer-tip">点击“开始”后会打开系统文件选择器。视频只用于提取口播参考，不作为发布素材。</div>`
+          ? `<div class="workflow-composer-tip">点击“开始”后会打开系统文件选择器。视频只用于提取文案参考，不作为发布素材。</div>`
         : readyTranscripts.length
           ? `<label class="production-field full"><span>选择一条已转写作品</span><select id="workflow-viral-transcript">${readyTranscripts.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title || item.nickname || '未命名作品')}</option>`).join('')}</select></label>`
           : `<div class="workflow-warning">还没有可用的转写档案。先去「同行采集」或「我的数据」采集一条作品。</div>`;
     const sourceTip = source === 'link'
-      ? '链接会先在本机抖音浏览器打开并读取作品，再上传视频进入转写；如遇登录或验证码，请先在「本地抖音采集」窗口完成。系统优先提取人声，没有人声时会自动尝试识别画面文字，仍失败再手动填写。'
+      ? '链接会先在本机抖音浏览器打开并读取作品，再上传视频进入转写；如遇登录或验证码，请先在「本地抖音采集」窗口完成。系统会按你选择的转写来源执行。'
       : source === 'upload'
-        ? '系统优先提取人声；没有人声时会自动尝试识别画面文字，仍失败再提示重新转写或手动填写。'
+        ? '系统会按你选择的转写来源执行；自动模式优先口播，没有口播再读画面文字。'
         : '只学习结构、节奏和表达方法；不会照抄原文，也不会冒充原作者。';
-    form = `${sourceTabs}${sourceInput}<div class="workflow-composer-tip">${sourceTip}</div>`;
+    form = `${sourceTabs}${modePicker}${sourceInput}<div class="workflow-composer-tip">${sourceTip}</div>`;
   } else {
     const mode = composer.mode || 'keyword';
     form = `<div class="workflow-mode-switch"><button type="button" class="choice-chip${mode === 'keyword' ? ' active' : ''}" data-action="workflow-hotspot-mode" data-mode="keyword">关键词联网搜索</button><button type="button" class="choice-chip${mode === 'manual' ? ' active' : ''}" data-action="workflow-hotspot-mode" data-mode="manual">手动填写热点</button></div>${mode === 'keyword' ? `<label class="production-field full"><span>搜索关键词</span><input id="workflow-hotspot-keyword" maxlength="120" placeholder="例如：寒假托管 / 素质教育新政 / 校外培训监管"></label>` : `<label class="production-field full"><span>热点标题</span><input id="workflow-hotspot-title" maxlength="200" placeholder="例如：多地推行寒假托管"></label><label class="production-field full"><span>事实描述</span><textarea id="workflow-hotspot-fact" rows="4" maxlength="2000" placeholder="只写你已核对的事实，1–3 句即可"></textarea></label><label class="production-field full"><span>来源链接（可空）</span><input id="workflow-hotspot-url" maxlength="500" placeholder="https://…"></label>`}<div class="workflow-composer-tip">关键词模式会调用 DeepSeek 搜索；手动模式只引用你填写的事实，不编造新闻细节。</div>`;
@@ -489,8 +499,16 @@ function renderWorkflowCard() {
       ? `<div class="workflow-error"><b>热点搜索没有完成</b><p>${escapeHtml(stateData.extractError || wf.error || '可以重试，或换一种来源 / 手动填写。')}</p><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-search-retry">重新搜索</button><button type="button" class="btn secondary small" data-action="workflow-search-manual">改用手动填写</button></div></div>`
       : `<div class="workflow-error"><b>没有提取到可用的人声文案</b><p>${escapeHtml(stateData.extractError || wf.error || '请重新转写、手动粘贴画面文案，或换一条有人声的视频。')}</p><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-retry-transcript">重新提取</button><button type="button" class="btn secondary small" data-action="workflow-cancel">放弃并换来源</button></div></div><label class="production-field full"><span>或手动粘贴这条视频的文案</span><textarea id="workflow-manual-transcript" rows="8" maxlength="4000" placeholder="把画面字幕、口播稿或你整理出的文案粘贴到这里"></textarea></label><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-confirm-manual-transcript" ${state.workflowBusy ? 'disabled' : ''}>用手动文案拆解改写方案 →</button></div>`;
   } else if (wf.stage === 'transcript') {
-    const visualTranscript = stateData.transcriptSource === 'visual';
-    body = `${visualTranscript ? '<div class="workflow-warning"><b>这是画面文字，不是口播转写</b><p>系统没有识别到清晰人声，已自动读取视频画面里的文字。请先核对，必要时直接修改，再进入拆解改写。</p></div>' : ''}<label class="production-field full"><span>${visualTranscript ? '确认画面文字' : '确认提取到的原文'}</span><textarea id="workflow-transcript" rows="10" maxlength="4000">${escapeHtml(stateData.transcript || '')}</textarea></label><div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-copy-transcript">复制原文</button><button type="button" class="btn primary small" data-action="workflow-confirm-transcript" ${state.workflowBusy ? 'disabled' : ''}>确认原文，拆解改写方案 →</button></div>`;
+    const transcriptSource = stateData.transcriptSource || 'speech';
+    const visualTranscript = transcriptSource === 'visual';
+    const mixedTranscript = transcriptSource === 'mixed';
+    const sourceNotice = mixedTranscript
+      ? '<div class="workflow-warning"><b>这是口播 + 画面文字合并稿</b><p>口播和画面文字分别标注了来源。请核对重复或冲突内容，必要时直接修改，再进入拆解改写。</p></div>'
+      : visualTranscript
+        ? '<div class="workflow-warning"><b>这是画面文字，不是口播转写</b><p>系统没有识别到清晰人声，已自动读取视频画面里的文字。请先核对，必要时直接修改，再进入拆解改写。</p></div>'
+        : '';
+    const transcriptLabel = mixedTranscript ? '确认口播 + 画面文字合并稿' : visualTranscript ? '确认画面文字' : '确认提取到的原文';
+    body = `${sourceNotice}<label class="production-field full"><span>${transcriptLabel}</span><textarea id="workflow-transcript" rows="10" maxlength="4000">${escapeHtml(stateData.transcript || '')}</textarea></label><div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-copy-transcript">复制原文</button><button type="button" class="btn primary small" data-action="workflow-confirm-transcript" ${state.workflowBusy ? 'disabled' : ''}>确认原文，拆解改写方案 →</button></div>`;
   } else if (wf.stage === 'planning') {
     body = `<div class="workflow-loading"><span class="spinner"></span><b>${escapeHtml(stateData.message || '正在拆解爆款机制…')}</b><p>先判断原文靠什么成立，再设计 3 套可选择的改写方案；这一步不会直接写正文。</p></div>`;
   } else if (wf.stage === 'plan_failed') {
@@ -947,9 +965,9 @@ function workflowLaunchInput(kind, composer) {
     if (composer.sourceType === 'link') {
       const shareText = String(document.querySelector('#workflow-viral-link')?.value || '').trim();
       if (!shareText) throw new Error('请先粘贴抖音分享内容或作品链接');
-      return { sourceType: 'link', shareText };
+      return { sourceType: 'link', shareText, transcriptMode: composer.transcriptMode || 'auto' };
     }
-    if (composer.sourceType === 'upload') return { sourceType: 'upload' };
+    if (composer.sourceType === 'upload') return { sourceType: 'upload', transcriptMode: composer.transcriptMode || 'auto' };
     const transcriptId = String(document.querySelector('#workflow-viral-transcript')?.value || '').trim();
     if (!transcriptId) throw new Error('请选择一条已转写作品');
     return { sourceType: 'transcript', transcriptId };
@@ -982,13 +1000,13 @@ async function launchWorkflow(kind) {
       const imported = await app.resolveDouyinLink(input.shareText);
       if (imported?.ok === false) throw new Error(imported.message || '抖音链接解析失败');
       if (!imported?.asset?.id) throw new Error('抖音链接解析后没有拿到视频素材');
-      input = { sourceType: 'upload', assetId: imported.asset.id };
+      input = { sourceType: 'upload', assetId: imported.asset.id, transcriptMode: input.transcriptMode || 'auto' };
     } else if (kind === 'viral' && input.sourceType === 'upload') {
       const uploaded = await app.uploadAsset({ kind: 'video', folder: '复刻参考' });
       if (uploaded?.ok === false) throw new Error(uploaded.message || '上传视频失败');
       if (uploaded?.canceled) { state.workflowBusy = false; renderCreateOnly(); return; }
       if (!uploaded?.asset?.id) throw new Error('上传后没有拿到视频素材');
-      input = { sourceType: 'upload', assetId: uploaded.asset.id };
+      input = { sourceType: 'upload', assetId: uploaded.asset.id, transcriptMode: input.transcriptMode || 'auto' };
     }
     const data = await api('/workflows', { method: 'POST', body: { kind, accountId: 'default', input }, timeout: 120000 });
     state.workflow = data.workflow;
@@ -2016,6 +2034,7 @@ async function handleAction(action, target) {
   if (action === 'workflow-open') { openWorkflowComposer(target?.dataset?.kind || 'today'); return; }
   if (action === 'workflow-composer-cancel') { state.workflowComposer = null; state.workflowBusy = false; renderCreateOnly(); return; }
   if (action === 'workflow-viral-source') { setWorkflowComposer({ sourceType: target?.dataset?.source || 'text' }); return; }
+  if (action === 'workflow-transcript-mode') { setWorkflowComposer({ transcriptMode: target?.dataset?.mode || 'auto' }); return; }
   if (action === 'workflow-hotspot-mode') { setWorkflowComposer({ mode: target?.dataset?.mode || 'keyword' }); return; }
   if (action === 'workflow-launch') { await launchWorkflow(target?.dataset?.kind || state.workflowComposer?.kind || 'today'); return; }
   if (action === 'workflow-cancel') { await cancelWorkflow(); return; }

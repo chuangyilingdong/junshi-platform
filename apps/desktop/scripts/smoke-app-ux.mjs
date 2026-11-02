@@ -429,6 +429,16 @@ try {
 
   await page.locator('[data-action="workflow-open"][data-kind="viral"]').click();
   await page.waitForSelector('#workflow-viral-text', { timeout: 5000 });
+  await page.locator('[data-action="workflow-viral-source"][data-source="upload"]').click();
+  await page.waitForSelector('[data-action="workflow-transcript-mode"]', { timeout: 5000 });
+  const transcriptModeCount = await page.locator('[data-action="workflow-transcript-mode"]').count();
+  await page.locator('[data-action="workflow-transcript-mode"][data-mode="both"]').click();
+  const transcriptModeActive = await page.locator('[data-action="workflow-transcript-mode"][data-mode="both"]').getAttribute('class');
+  if (transcriptModeCount !== 4 || !String(transcriptModeActive).includes('active')) {
+    throw new Error(`transcript mode selector incomplete: ${JSON.stringify({ transcriptModeCount, transcriptModeActive })}`);
+  }
+  await page.locator('[data-action="workflow-viral-source"][data-source="text"]').click();
+  await page.waitForSelector('#workflow-viral-text', { timeout: 5000 });
   await page.fill('#workflow-viral-text', '一个健身比赛表面只收报名费，背后还有拍摄、周边、赞助和多层商业收入。');
   await page.locator('[data-action="workflow-launch"]').click();
   await page.waitForSelector('#workflow-transcript', { timeout: 10000 });
@@ -642,7 +652,7 @@ try {
   const cycleIdea = await page.locator('#create-idea').inputValue();
   if (!cycleIdea.includes('家长为什么先问价格')) throw new Error(`cycle idea was not carried into create: ${cycleIdea}`);
 
-  console.log(JSON.stringify({ name: 'junshi-desktop-app-ux-smoke', pass: true, layout, productionDraft: draftState, shotCount, storyboardEdited: true, publishStep: publishState.currentStep, responsive, workflow: { ideaCount: workflowIdeaCount, copyCount: workflowCopyCount, streamingCopyDisabled, productionTitle }, viral: { planCount: viralPlanCount, copyCount: viralCopyCount, planSummary: true, manualFallback: viralFallback, visualFallback: viralVisualFallback, planCountAfterVisual: viralManualPlanCount }, videoModes: { avatarOptions, hostedDraft: true }, context: { brainCards: brainPanel.cards, brainCardsAfterCreate, memoryCount, assetCount, jobCount, cycleConfirm: true }, insightFlow: true }));
+  console.log(JSON.stringify({ name: 'junshi-desktop-app-ux-smoke', pass: true, layout, productionDraft: draftState, shotCount, storyboardEdited: true, publishStep: publishState.currentStep, responsive, workflow: { ideaCount: workflowIdeaCount, copyCount: workflowCopyCount, streamingCopyDisabled, productionTitle }, viral: { planCount: viralPlanCount, copyCount: viralCopyCount, planSummary: true, transcriptModeCount, transcriptModeActive: String(transcriptModeActive).includes('active'), manualFallback: viralFallback, visualFallback: viralVisualFallback, planCountAfterVisual: viralManualPlanCount }, videoModes: { avatarOptions, hostedDraft: true }, context: { brainCards: brainPanel.cards, brainCardsAfterCreate, memoryCount, assetCount, jobCount, cycleConfirm: true }, insightFlow: true }));
 } finally {
   await app.close();
   await new Promise((resolve) => server.close(resolve));

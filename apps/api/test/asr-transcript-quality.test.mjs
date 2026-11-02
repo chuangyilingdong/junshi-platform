@@ -48,6 +48,20 @@ test('ASR filtering rejects low-confidence no-speech segments before they become
   assert.deepEqual(result.segments, []);
 });
 
+test('transcript source modes are persisted, retry-safe and support mixed output', () => {
+  const route = fs.readFileSync(new URL('../src/routes/junshiWorkbench.js', import.meta.url), 'utf8');
+  const app = fs.readFileSync(new URL('../../desktop/src/app.js', import.meta.url), 'utf8');
+  assert.match(route, /new Set\(\['auto', 'speech', 'visual', 'both'\]\)/);
+  assert.match(route, /transcriptMode: mode/);
+  assert.match(route, /\['auto', 'speech', 'both'\]\.includes\(mode\)/);
+  assert.match(route, /mode === 'visual' \|\| mode === 'both'/);
+  assert.match(route, /part\.source === 'speech' \? '口播' : '画面文字'/);
+  assert.match(route, /return 'mixed'/);
+  assert.match(app, /workflow-transcript-mode/);
+  assert.match(app, /transcriptMode: composer\.transcriptMode \|\| 'auto'/);
+  assert.match(app, /口播 \+ 画面文字合并稿/);
+});
+
 test('no-speech video falls back to visual text extraction and marks the source', () => {
   const route = fs.readFileSync(new URL('../src/routes/junshiWorkbench.js', import.meta.url), 'utf8');
   const app = fs.readFileSync(new URL('../../desktop/src/app.js', import.meta.url), 'utf8');
@@ -57,7 +71,8 @@ test('no-speech video falls back to visual text extraction and marks the source'
   assert.match(route, /source: 'visual'/);
   assert.match(route, /transcriptSource/);
   assert.match(route, /SELECT status, text, title, nickname, error, segments/);
-  assert.match(app, /stateData\.transcriptSource === 'visual'/);
+  assert.match(app, /transcriptSource === 'visual'/);
+  assert.match(app, /transcriptSource === 'mixed'/);
   assert.match(app, /这是画面文字，不是口播转写/);
 });
 
