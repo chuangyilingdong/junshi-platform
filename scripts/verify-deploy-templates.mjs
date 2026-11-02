@@ -25,3 +25,10 @@ assert.match(nginx, /proxy_read_timeout 300s/);
 assert.doesNotMatch(nginx, /location \/api\/\s*\{/);
 
 console.log('Deployment templates passed');
+const healthService = await readFile(path.join(root, 'deploy/systemd/junshi-healthcheck.service'), 'utf8');
+const healthTimer = await readFile(path.join(root, 'deploy/systemd/junshi-healthcheck.timer'), 'utf8');
+assert.match(healthService, /check-production-health\.mjs/);
+assert.match(healthService, /junshi-api\.service/);
+assert.match(healthTimer, /OnUnitActiveSec=5min/);
+assert.match(healthTimer, /Unit=junshi-healthcheck\.service/);
+console.log('Healthcheck templates passed');

@@ -1,0 +1,14 @@
+[Unit]
+Description=Junshi production health check
+After=network-online.target junshi-api.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ai-kids-prod
+Group=ai-kids-prod
+WorkingDirectory=/srv/junshi-platform/current
+EnvironmentFile=/etc/ai-kids-platform/production.env
+EnvironmentFile=-/etc/junshi-platform/production.env
+ExecStart=/srv/ai-kids-platform/runtime/node/bin/node /srv/junshi-platform/current/scripts/check-production-health.mjs
+TimeoutStartSec=90s

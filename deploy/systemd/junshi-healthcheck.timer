@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Junshi production health check every 5 minutes
+Requires=junshi-healthcheck.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=20s
+Persistent=true
+Unit=junshi-healthcheck.service
+
+[Install]
+WantedBy=timers.target
