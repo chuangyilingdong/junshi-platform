@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import fs from 'node:fs';
-import { buildViralOnePrompt, buildViralPlanPrompt, demoViralPlans } from '../src/services/junshiWorkbenchContent.js';
+import { buildViralOnePrompt, buildViralPlanPrompt, buildViralPlanRepairPrompt, demoViralPlans } from '../src/services/junshiWorkbenchContent.js';
 
 const profile = {
   name: '少儿美术招生号', platform: '抖音', product: '少儿美术体验课', audience: '3-8岁家长',
@@ -18,6 +18,23 @@ test('viral plan prompt requires source mechanism to account business mapping', 
   assert.match(prompt, /sourceAnalysis/);
   assert.match(prompt, /plans 必须正好 3 个/);
   assert.ok(prompt.includes(sourceText));
+});
+
+test('viral plan repair prompt fixes incomplete output without changing the transfer logic', () => {
+  const prompt = buildViralPlanRepairPrompt({
+    profile,
+    orgProfile: '广州少儿美术机构',
+    sourceText,
+    strength: 'medium',
+    draft: '{"plans":[{"title":"只有一个方案"}]}',
+    validationError: '需要 3 套包含机制、业务桥梁、核心判断和至少 3 个节拍的方案',
+  });
+  assert.match(prompt, /只修复结构，不要写正文/);
+  assert.match(prompt, /plans 必须正好 3 个/);
+  assert.match(prompt, /至少 3 个 beats/);
+  assert.match(prompt, /原爆款机制 → 本账号业务/);
+  assert.ok(prompt.includes(sourceText));
+  assert.ok(prompt.includes('只有一个方案'));
 });
 
 test('viral version prompt must execute the selected plan instead of generic copy', () => {
@@ -50,6 +67,14 @@ test('viral workflow keeps a legacy direct-rewrite path for 0.6.2 clients', () =
   assert.match(route, /startWfCopy\(ctx, owner, wfId\)/);
   assert.match(route, /action === 'select_rewrite_plan'/);
   assert.match(route, /action === 'reselect_rewrite_plan'/);
+});
+
+test('viral plan generation performs one structural repair before failing', () => {
+  const route = fs.readFileSync(new URL('../src/routes/junshiWorkbench.js', import.meta.url), 'utf8');
+  assert.match(route, /buildViralPlanRepairPrompt\(/);
+  assert.match(route, /catch \(initialError\)/);
+  assert.match(route, /validationError: initialError\?\.message/);
+  assert.match(route, /payload = parsePlanText\(repaired\.text\)/);
 });
 
 test('rewrite plan normalization rejects incomplete or duplicate plan sets', () => {

@@ -81,6 +81,7 @@ import {
   buildVideoPrompt,
   buildViralOnePrompt,
   buildViralPlanPrompt,
+  buildViralPlanRepairPrompt,
   buildViralRewritePrompt,
   buildCyclePlanPrompt,
   buildCycleSlotPrompt,
@@ -3630,19 +3631,32 @@ async function runWfPlans(ctx, owner, wfId, job = null) {
     if (providerMock) {
       payload = demoViralPlans(profileData, state.transcript, state.strength || 'medium');
     } else {
+      const promptArgs = {
+        profile: profileData,
+        orgProfile: orgProfileTextValue,
+        sourceText: state.transcript,
+        strength: state.strength || 'medium',
+      };
+      const parsePlanText = (value) => normalizeViralPlanPayload(parseLooseJsonObject(value) || parseLooseJsonArray(value) || {});
       const result = await collectText(ctx, {
         system: WORKBENCH_SYSTEM,
-        user: buildViralPlanPrompt({
-          profile: profileData,
-          orgProfile: orgProfileTextValue,
-          sourceText: state.transcript,
-          strength: state.strength || 'medium',
-        }),
+        user: buildViralPlanPrompt(promptArgs),
       });
       if (mockOrEmpty(result)) throw new Error('这次没有生成出改写方案');
-      const parsedObject = parseLooseJsonObject(result.text);
-      const parsedArray = parseLooseJsonArray(result.text);
-      payload = normalizeViralPlanPayload(parsedObject || parsedArray || {});
+      try {
+        payload = parsePlanText(result.text);
+      } catch (initialError) {
+        const repaired = await collectText(ctx, {
+          system: WORKBENCH_SYSTEM,
+          user: buildViralPlanRepairPrompt({
+            ...promptArgs,
+            draft: result.text,
+            validationError: initialError?.message || initialError,
+          }),
+        });
+        if (mockOrEmpty(repaired)) throw initialError;
+        payload = parsePlanText(repaired.text);
+      }
     }
     payload = normalizeViralPlanPayload(payload);
     state.sourceAnalysis = payload.sourceAnalysis;

@@ -162,7 +162,7 @@
       "source": "apps/server/src/routes/junshiWorkbench.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/routes/junshiWorkbench.js",
-      "sha256": "2fbb1b6e144a56b5f5dfd747721dad44cd6f48c414a695b2ff69b1409439d71f",
+      "sha256": "d40a072f5d11f1afa6a19215c5418b06de85c13ceb1787bddbdf185e49872514",
       "sourceSha256": "f44c3e10858e3a8d34de341fe9e31aa844fa594ef041f7b3cc0fd28e744a92fe"
     },
     {
@@ -219,7 +219,7 @@
       "source": "apps/server/src/services/junshiWorkbenchContent.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiWorkbenchContent.js",
-      "sha256": "c3b85a674f4eef5bf70e606580980588ef4aecd2156573f5982c59292a88db03",
+      "sha256": "b808c96ef040fde8362896b1cc13d8d07f037880e5f4324ffa991733a796dac7",
       "sourceSha256": "f05a25bce357fe54013f44b0602c3d8c09baf1eb84e68998245e1f74d7fe47fa"
     },
     {

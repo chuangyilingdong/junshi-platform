@@ -601,6 +601,39 @@ ${workbenchProfileBlock(profile)}
 plans 必须正好 3 个，而且三套方案要有明显差异。`;
 }
 
+/** 方案结构不合格时，让模型只修 JSON 结构，不重启正文生成。 */
+export function buildViralPlanRepairPrompt({ profile, orgProfile, sourceText, strength, draft, validationError }) {
+  const rule = { low: '低强度：只借鉴选题机制，结构与表达全部重建。', medium: '中强度：借鉴冲突与信息递进，换主题、证据、表达与镜头。', high: '高强度：尽量保留传播机制和节奏，但不复用原句、原素材或一一对应镜头。' }[strength] || '中强度：借鉴冲突与信息递进，换主题、证据、表达与镜头。';
+  return `【任务】你上一轮输出的改写方案结构不合格。现在只修复结构，不要写正文，也不要退回泛泛的行业模板。请保留草稿里有效的原文机制和业务桥梁，补齐为正好 3 套完整且明显不同的方案。
+
+【校验失败原因】
+${String(validationError || '方案结构不完整').slice(0, 500)}
+
+【不合格草稿（只能参考，不能原样照抄缺失结构）】
+${String(draft || '').slice(0, 12000)}
+
+【改造强度】${rule}
+
+【爆款原文】
+${String(sourceText || '').slice(0, 4000)}
+
+【机构画像】
+${orgProfile || '（未填写）'}
+
+【内容账号档案】
+${workbenchProfileBlock(profile)}
+
+【硬性要求】
+1. plans 必须正好 3 个，三个 title、targetBridge、thesis 都必须不同。
+2. 每套都必须有非空的 sourceMechanism、targetBridge、thesis，以及至少 3 个 beats。
+3. 每套都必须写清「原爆款机制 → 本账号业务」的对应关系；不能跳过业务桥梁直接写行业常识。
+4. sourceAnalysis 必须保留，且核心问题、开场机制、推进链和必须替换的事实要具体。
+5. 只输出一个 JSON 对象，不要解释或代码围栏。
+
+【输出格式】
+{"sourceAnalysis":{"coreQuestion":"原文真正回答的问题","hookMechanism":"开场如何抓住人","logicChain":["信息推进1","信息推进2","信息推进3"],"turn":"转折/反转","closing":"如何收束","mustReplace":["必须换掉的原行业事实1","必须换掉的原行业事实2"]},"plans":[{"id":"p1","title":"方案名（16字内）","strategy":"这套方案保留什么、换掉什么","sourceMechanism":"从原文抽出的可迁移机制","targetBridge":"映射到本账号业务的具体桥梁","thesis":"改写后要证明的一句话","beats":["段落1","段落2","段落3","段落4"],"evidence":["可使用的账号资料/事实1","可使用的账号资料/事实2"],"avoid":"这套方案最容易写偏的地方"}]}`;
+}
+
 /** mock 模式下的改写方案，也遵守“先机制、后迁移”。 */
 export function demoViralPlans(profile, sourceText, strength) {
   const subject = subjectOf(profile);
