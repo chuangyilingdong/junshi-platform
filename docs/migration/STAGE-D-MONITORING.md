@@ -33,7 +33,7 @@ journalctl -u junshi-healthcheck.service
 
 ```text
 JUNSHI_ALERT_WEBHOOK_URL=...
-JUNSHI_ALERT_WEBHOOK_FORMAT=generic|feishu
+JUNSHI_ALERT_WEBHOOK_FORMAT=generic
 ```
 
 仓库只保存占位，不包含真实 Webhook。
@@ -50,7 +50,7 @@ JUNSHI_ALERT_WEBHOOK_FORMAT=generic|feishu
 
 2026-11-02 已部署：
 
-- 当前 release：`/srv/junshi-platform/releases/20261102T031236Z`
+- 当前 release：`/srv/junshi-platform/releases/20261102T033532Z`
 - `junshi-healthcheck.timer`：active
 - 手动运行：通过
 - 首次定时运行：通过

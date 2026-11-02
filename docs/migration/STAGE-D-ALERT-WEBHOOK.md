@@ -5,8 +5,8 @@
 ## 当前状态
 
 - `junshi-healthcheck.timer` 正常，每 5 分钟运行
-- generic / Feishu 两种 payload 已实现
-- Webhook HTTP 失败、Feishu API 返回失败都会写入 journal
+- 通用 JSON payload 已实现
+- Webhook HTTP 失败会写入 journal
 - 错误日志不会包含 Webhook URL
 - 仓库仅保留空占位，不保存真实地址
 - **真实 Webhook 尚未配置，当前失败仍只写 journal**
@@ -30,24 +30,18 @@
 
 ```text
 JUNSHI_ALERT_WEBHOOK_URL=https://...
-JUNSHI_ALERT_WEBHOOK_FORMAT=feishu
-```
-
-通用 Webhook 使用：
-
-```text
 JUNSHI_ALERT_WEBHOOK_FORMAT=generic
 ```
 
 ## 配置方法
 
-在飞书目标群中添加“自定义机器人”，取得 Webhook 地址后，在服务器交互式执行：
+在目标告警系统中取得通用 Webhook 地址后，在服务器交互式执行：
 
 ```bash
 umask 077
 sudo install -m 600 -o root -g root /dev/null /etc/junshi-platform/alert-webhook.env
 read -rsp 'Webhook URL: ' JUNSHI_ALERT_WEBHOOK_URL
-printf 'JUNSHI_ALERT_WEBHOOK_URL=%s\nJUNSHI_ALERT_WEBHOOK_FORMAT=feishu\n' "$JUNSHI_ALERT_WEBHOOK_URL" \
+printf 'JUNSHI_ALERT_WEBHOOK_URL=%s\nJUNSHI_ALERT_WEBHOOK_FORMAT=generic\n' "$JUNSHI_ALERT_WEBHOOK_URL" \
   | sudo tee /etc/junshi-platform/alert-webhook.env >/dev/null
 unset JUNSHI_ALERT_WEBHOOK_URL
 sudo chmod 600 /etc/junshi-platform/alert-webhook.env
@@ -83,7 +77,7 @@ sudo systemd-run --quiet --wait --pipe \
 预期：
 
 ```json
-{"ok":true,"test":true,"format":"feishu","status":200}
+{"ok":true,"test":true,"format":"generic","status":200}
 ```
 
 随后手动跑一次完整健康检查：
