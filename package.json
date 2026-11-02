@@ -18,6 +18,7 @@
     "smoke:api-independent": "node scripts/smoke-independent-api.mjs",
     "test:deploy": "node scripts/verify-deploy-templates.mjs",
     "test:healthcheck": "node --test scripts/test/alert-webhook.test.mjs",
+    "test:old-ui-regression": "node scripts/regression-old-junshi.mjs",
     "verify:release-runtime": "node scripts/verify-release-runtime.mjs",
     "smoke:provider-text": "node scripts/smoke-real-text-provider.mjs"
   },

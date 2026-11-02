@@ -54,6 +54,8 @@ https://aicyld.com/junshi/index.html
 /api/junshi/workbench/video/renders
 ```
 
+全量逐页结果见 `STAGE-D-OLD-UI-FULL.md`。
+
 ## 结论
 
 旧 `/junshi` 网页在切流后仍能正常加载并访问新 API。没有发现布局白屏、鉴权回环或接口 5xx。
