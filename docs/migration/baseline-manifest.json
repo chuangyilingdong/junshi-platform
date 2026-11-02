@@ -15,21 +15,21 @@
       "source": "apps/junshi-desktop/package.json",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/package.json",
-      "sha256": "e9f54e90b204086950a9ea0b86d88f866a87821b0d2c387658315efbc893d67f",
+      "sha256": "d87cd05fdeb2e867b41b0ee2cb577fec57811b9b7daac2dcd83e480da1958f7f",
       "sourceSha256": "6174d7e14a0e51ddde76f3d06edbc62258a8763e78f27c2dd188da5ec714f7b9"
     },
     {
       "source": "apps/junshi-desktop/README.md",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/README.md",
-      "sha256": "1e4abf78e24b5df9fe9a2a25609579f9417aa44be8b896ea81386300bd91f338",
+      "sha256": "fab9e6d15684cb39c8ea22ffa90f6bd2c75b77aa3d9197ae9e414e085fec5dc8",
       "sourceSha256": "1394ce4c5bef04c2e11daadeb782f5fecbc3b7252a551af38bd7531150de1f9b"
     },
     {
       "source": "apps/junshi-desktop/scripts/smoke-app-ux.mjs",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/scripts/smoke-app-ux.mjs",
-      "sha256": "f2883698edae9b888bfb52a2d4b4b6dbb782986bbcf3b989af6bcd1a7dabf836",
+      "sha256": "c51b0cdcc4e8e45dfe8b8a2a019a3718eea82bf7e7fa16dd20460e53a7f6d6c5",
       "sourceSha256": "bd40596bbe15c21b2fa22eca966cc356577bd36308fad670e370d900de8aab26"
     },
     {
@@ -85,7 +85,7 @@
       "source": "apps/junshi-desktop/src/app.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/desktop/src/app.js",
-      "sha256": "082c114ad25b2e3bb9d2c6727444d69a90511ba115bdc028c3915762efa906d8",
+      "sha256": "ed9ca83aa5fb60d1965f4254c4fe1b9cd042e6298d02e95362d0ba777b86e216",
       "sourceSha256": "514ffd5d4c4b1374c9ba7ec0959a60a35af4b77fd6f4b10df7839a3a6dc3a453"
     },
     {
@@ -162,7 +162,7 @@
       "source": "apps/server/src/routes/junshiWorkbench.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/routes/junshiWorkbench.js",
-      "sha256": "d40a072f5d11f1afa6a19215c5418b06de85c13ceb1787bddbdf185e49872514",
+      "sha256": "01082e2c1b5417990e632c558f925bedc28f681748e24db4a147baeb56064c45",
       "sourceSha256": "f44c3e10858e3a8d34de341fe9e31aa844fa594ef041f7b3cc0fd28e744a92fe"
     },
     {
@@ -191,7 +191,7 @@
       "source": "apps/server/src/services/junshiDouyin.js",
       "sourceRef": "bf98fed22be069b1fafd0d0980d48d8608d0c3fa",
       "target": "apps/api/src/services/junshiDouyin.js",
-      "sha256": "47ca8b75f0c2cf1dbe694c1fddca36809fe8b1eb3d72a1b31b6047c9c407b396",
+      "sha256": "952059449e15a0fae056b22a44df362ab1dda6642676afd3f3d8bfb6cba1b19b",
       "sourceSha256": "47ca8b75f0c2cf1dbe694c1fddca36809fe8b1eb3d72a1b31b6047c9c407b396"
     },
     {

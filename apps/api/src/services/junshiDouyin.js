@@ -309,6 +309,92 @@ export async function prepareAudioChunks({ buffer, fileName = 'source.mp4', chun
   }
 }
 
+const ASR_HALLUCINATION_MARKERS = [
+  'thisistheendofthevideo',
+  'ihopeyouenjoyedit',
+  'ifyoudidpleaseleavealikeandsubscribe',
+  'pleaseleavealikeandsubscribe',
+  'illseeyouinthenextvideo',
+  'thankyouforwatching',
+  'thanksforwatching',
+  'pleasesubscribe',
+  'subtitlesby',
+  'amaraorg',
+  '请不吝点赞',
+  '订阅转发打赏支持',
+  '明镜与点点栏目',
+  '字幕由',
+  '字幕志愿者',
+];
+
+function normalizeAsrText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[\s\p{P}\p{S}]+/gu, '');
+}
+
+function isAsrHallucination(value) {
+  const normalized = normalizeAsrText(value);
+  if (!normalized) return true;
+  if (normalized.length < 6) return true;
+  if (['谢谢观看', '感谢观看', '下期再见', '我们下期再见', '谢谢大家观看'].includes(normalized)) return true;
+  let remainder = normalized;
+  for (const marker of ASR_HALLUCINATION_MARKERS) remainder = remainder.replaceAll(marker, '');
+  if (remainder !== normalized && remainder.replace(/bye/g, '').length <= 2) return true;
+  return false;
+}
+
+/** 判断一段转写是否具备可用于后续改写的信息量；空、过短和 Whisper 常见幻觉都视为不可用。 */
+export function transcriptQualityIssue(value) {
+  const normalized = normalizeAsrText(value);
+  if (!normalized) return 'empty';
+  if (normalized.length < 6 || isAsrHallucination(value)) return 'hallucination';
+  return '';
+}
+
+function shouldDropAsrSegment(segment) {
+  const text = String(segment?.text || '').trim();
+  if (!text || isAsrHallucination(text)) return true;
+  const noSpeechProb = Number(segment?.noSpeechProb ?? segment?.no_speech_prob);
+  const avgLogprob = Number(segment?.avgLogprob ?? segment?.avg_logprob);
+  const compressionRatio = Number(segment?.compressionRatio ?? segment?.compression_ratio);
+  if (Number.isFinite(noSpeechProb) && noSpeechProb >= 0.6 && (!Number.isFinite(avgLogprob) || avgLogprob < -0.8)) return true;
+  if (Number.isFinite(compressionRatio) && compressionRatio > 3.2) return true;
+  return false;
+}
+
+/** 清掉逐段幻觉、重复句和高质量模型常见的片尾套话，再判断是否还有真实口播。 */
+export function filterAsrResult(result) {
+  const rawSegments = Array.isArray(result?.segments) ? result.segments : [];
+  const segments = rawSegments.length
+    ? rawSegments
+    : (result?.text ? [{ start: 0, end: Number(result.duration) || 0, text: String(result.text) }] : []);
+  const seen = new Set();
+  const kept = [];
+  for (const segment of segments) {
+    if (shouldDropAsrSegment(segment)) continue;
+    const text = String(segment.text || '').trim();
+    const key = normalizeAsrText(text);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    kept.push({
+      start: Number(segment.start) || 0,
+      end: Number(segment.end) || 0,
+      text,
+      noSpeechProb: Number(segment.noSpeechProb ?? segment.no_speech_prob) || 0,
+      avgLogprob: Number(segment.avgLogprob ?? segment.avg_logprob) || 0,
+      compressionRatio: Number(segment.compressionRatio ?? segment.compression_ratio) || 0,
+    });
+  }
+  const text = kept.map((segment) => segment.text).join('\n').trim();
+  return {
+    text: transcriptQualityIssue(text) ? '' : text,
+    segments: transcriptQualityIssue(text) ? [] : kept,
+    duration: Number(result?.duration) || (kept.length ? kept[kept.length - 1].end : 0),
+    language: String(result?.language || ''),
+  };
+}
+
 function asrErrorRetryable(error) {
   const message = String(error?.message || error);
   const status = Number(error?.status) || 0;
@@ -316,11 +402,14 @@ function asrErrorRetryable(error) {
 }
 
 /** 同步转写：multipart 上传音频/视频字节，verbose_json 拿时间码分段。 */
-export async function transcribeMedia({ endpoint, apiKey, buffer, fileName, mimeType, timeoutMs = 300000 }) {
+export async function transcribeMedia({ endpoint, apiKey, buffer, fileName, mimeType, timeoutMs = 300000, language = 'zh', prompt = '以下是普通话口播内容。只转写实际说出的中文；没有清晰人声时返回空文本，不要猜测、补写片尾语或生成英文套话。' }) {
   const form = new FormData();
   form.append('file', new Blob([buffer], { type: mimeType || 'video/mp4' }), fileName);
   form.append('model', 'whisper-1');
   form.append('response_format', 'verbose_json');
+  if (language) form.append('language', String(language));
+  if (prompt) form.append('prompt', String(prompt).slice(0, 800));
+  form.append('temperature', '0');
   const response = await fetch(`${endpoint}/v1/audio/transcriptions`, {
     method: 'POST', headers: { authorization: `Bearer ${apiKey}` }, body: form, signal: AbortSignal.timeout(timeoutMs),
   });
@@ -337,6 +426,9 @@ export async function transcribeMedia({ endpoint, apiKey, buffer, fileName, mime
     start: Number(segment.start) || 0,
     end: Number(segment.end) || 0,
     text: String(segment.text || '').trim(),
+    noSpeechProb: Number(segment.no_speech_prob) || 0,
+    avgLogprob: Number(segment.avg_logprob) || 0,
+    compressionRatio: Number(segment.compression_ratio) || 0,
   }));
   return {
     text: String(payload.text || segments.map((s) => s.text).join(' ') || '').trim(),
@@ -377,13 +469,14 @@ export async function transcribeMediaReliable({ endpoint, apiKey, buffer, fileNa
         const detail = String(lastError?.message || lastError || '未知错误');
         throw Object.assign(new Error(`音频分片 ${index + 1}/${prepared.chunks.length} 转写失败：${detail}`), { status: lastError?.status || 502 });
       }
+      const filtered = filterAsrResult(result);
       const offset = index * Math.max(30, Number(chunkSeconds) || 300);
-      for (const segment of result.segments || []) {
+      for (const segment of filtered.segments) {
         mergedSegments.push({ start: offset + (Number(segment.start) || 0), end: offset + (Number(segment.end) || 0), text: segment.text });
       }
-      if (result.text) texts.push(result.text.trim());
+      if (filtered.text) texts.push(filtered.text.trim());
       duration = Math.max(duration, offset + (Number(result.duration) || 0));
-      if (!language && result.language) language = result.language;
+      if (!language && filtered.language) language = filtered.language;
     }
     return {
       text: texts.filter(Boolean).join('\n').trim(),

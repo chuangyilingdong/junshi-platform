@@ -174,6 +174,16 @@ const server = http.createServer(async (req, res) => {
       workflowRow = { ...workflowRow, stage: 'brain', state: { ...workflowRow.state, selectedIdea: idea } };
       return send({ data: { workflow: workflowRow } });
     }
+    if ((body.action === 'confirm_transcript' && String(body.text || '').trim() === 'you') || body.action === 'retry_transcript') {
+      workflowRow = {
+        ...workflowRow,
+        stage: 'extract_failed',
+        stageLabel: '提取失败',
+        error: '没有提取到可用的人声文案',
+        state: { ...workflowRow.state, extractError: '这条视频没有识别到清晰口播，只检测到背景音乐、环境声或画面文字。请重新转写、手动粘贴画面文案，或换一条有人声的视频。' },
+      };
+      return send({ data: { workflow: workflowRow } });
+    }
     if (body.action === 'confirm_transcript' && workflowRow.kind === 'viral') {
       const plans = [
         { id: 'plan-1', title: '保留商业拆解链', strategy: '保留“表面收入→真正结构”，换成教育业务。', sourceMechanism: '先承认表面答案，再拆出隐藏收入层。', targetBridge: '把健身赛事的报名、拍摄、周边，映射到体验课、正价课、教材和活动。', thesis: '低价体验课只是入口，真正的结构在后面的长期学习。', beats: ['先说体验课不赚钱', '拆出续班与教材收入', '解释家长真正该看什么'], evidence: ['课程交付流程', '真实家长问题'], avoid: '不要复制健身赛事的具体收费项目。' },
@@ -432,6 +442,34 @@ try {
     throw new Error(`viral copy did not adopt plan: ${JSON.stringify({ viralCopyCount, viralAdoptedText: viralAdoptedText.slice(0, 200) })}`);
   }
 
+  await page.locator('[data-action="workflow-open"][data-kind="viral"]').click();
+  await page.waitForSelector('#workflow-viral-text', { timeout: 5000 });
+  await page.fill('#workflow-viral-text', 'you');
+  await page.locator('[data-action="workflow-launch"]').click();
+  await page.waitForSelector('#workflow-transcript', { timeout: 10000 });
+  await page.locator('[data-action="workflow-confirm-transcript"]').click();
+  await page.waitForSelector('[data-action="workflow-confirm-manual-transcript"]', { timeout: 10000 });
+  const viralFallback = {
+    retry: await page.locator('[data-action="workflow-retry-transcript"]').count(),
+    manual: await page.locator('#workflow-manual-transcript').count(),
+    message: await page.locator('.workflow-error').innerText(),
+  };
+  if (viralFallback.retry !== 1 || viralFallback.manual !== 1 || !viralFallback.message.includes('没有提取到可用的人声文案')) {
+    throw new Error(`viral manual fallback missing: ${JSON.stringify(viralFallback)}`);
+  }
+  await page.fill('#workflow-manual-transcript', '这条视频讲的是低价体验课只是入口，家长真正要看的是老师备课、课后点评和下一阶段课程。');
+  await page.locator('[data-action="workflow-confirm-manual-transcript"]').click();
+  await page.waitForSelector('[data-action="workflow-select-plan"]', { timeout: 10000 });
+  const viralManualPlanCount = await page.locator('[data-action="workflow-select-plan"]').count();
+  if (viralManualPlanCount !== 3) throw new Error(`viral manual fallback did not reach plans: ${viralManualPlanCount}`);
+  await page.locator('[data-action="workflow-select-plan"]').first().click();
+  await page.waitForFunction(() => {
+    const buttons = document.querySelectorAll('[data-action="workflow-select-copy"]');
+    return buttons.length === 3 && !buttons[0].disabled;
+  }, null, { timeout: 10000 });
+  await page.locator('[data-action="workflow-select-copy"]').first().click();
+  await page.waitForSelector('#output-text', { timeout: 10000 });
+
   await page.locator('[data-action="workflow-open"][data-kind="today"]').click();
   await page.waitForSelector('#workflow-goal', { timeout: 5000 });
   await page.fill('#workflow-goal', '家长总觉得课程贵，想讲清价值');
@@ -580,7 +618,7 @@ try {
   const cycleIdea = await page.locator('#create-idea').inputValue();
   if (!cycleIdea.includes('家长为什么先问价格')) throw new Error(`cycle idea was not carried into create: ${cycleIdea}`);
 
-  console.log(JSON.stringify({ name: 'junshi-desktop-app-ux-smoke', pass: true, layout, productionDraft: draftState, shotCount, storyboardEdited: true, publishStep: publishState.currentStep, responsive, workflow: { ideaCount: workflowIdeaCount, copyCount: workflowCopyCount, streamingCopyDisabled, productionTitle }, viral: { planCount: viralPlanCount, copyCount: viralCopyCount, planSummary: true }, videoModes: { avatarOptions, hostedDraft: true }, context: { brainCards: brainPanel.cards, brainCardsAfterCreate, memoryCount, assetCount, jobCount, cycleConfirm: true }, insightFlow: true }));
+  console.log(JSON.stringify({ name: 'junshi-desktop-app-ux-smoke', pass: true, layout, productionDraft: draftState, shotCount, storyboardEdited: true, publishStep: publishState.currentStep, responsive, workflow: { ideaCount: workflowIdeaCount, copyCount: workflowCopyCount, streamingCopyDisabled, productionTitle }, viral: { planCount: viralPlanCount, copyCount: viralCopyCount, planSummary: true, manualFallback: viralFallback, manualPlanCount: viralManualPlanCount }, videoModes: { avatarOptions, hostedDraft: true }, context: { brainCards: brainPanel.cards, brainCardsAfterCreate, memoryCount, assetCount, jobCount, cycleConfirm: true }, insightFlow: true }));
 } finally {
   await app.close();
   await new Promise((resolve) => server.close(resolve));

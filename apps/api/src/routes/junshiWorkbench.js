@@ -30,6 +30,7 @@ import {
   seedanceAsrConfig,
   transcribeMedia,
   transcribeMediaReliable,
+  transcriptQualityIssue,
 } from '../services/junshiDouyin.js';
 import {
   seedanceChannelConfig,
@@ -2657,7 +2658,7 @@ async function runTranscriptionPipeline(owner, transcriptId, job) {
     if (!asr) throw Object.assign(new Error('转写渠道未配置（需要 seedance.nz 渠道 Key 或 JUNSHI_ASR_ENDPOINT/KEY）'), { code: 'WORKBENCH_ASR_NOT_CONFIGURED' });
     const buffer = await assetBytes(assetRow);
     const result = await transcribeMediaReliable({ endpoint: asr.endpoint, apiKey: asr.apiKey, buffer, fileName: assetRow.file_name || `${transcriptId}.mp4`, mimeType: assetRow.mime_type || 'video/mp4' });
-    if (!result.text.trim()) throw Object.assign(new Error('这条内容没有识别出语音（可能是纯音乐或时长太短）'), { code: 'WORKBENCH_ASR_EMPTY' });
+    if (!result.text.trim()) throw Object.assign(new Error('这条视频没有识别到清晰口播，只检测到背景音乐、环境声或画面文字。请手动粘贴画面文案，或换一条有人声的视频。'), { code: 'WORKBENCH_ASR_EMPTY' });
     await aq('UPDATE junshi_workbench_transcripts SET status=?, text=?, segments=?, duration_seconds=?, error="", updated_at=? WHERE id=?',
       ['succeeded', result.text.slice(0, 100000), JSON.stringify(result.segments.slice(0, 2000)), Number(result.duration) || 0, nowIso(), transcriptId]);
     await jobDone(job, 'succeeded', `转写完成：${result.segments.length} 段 / ${Math.round(result.duration)} 秒`);
@@ -4418,6 +4419,17 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
       : await arows('SELECT * FROM junshi_workbench_workflows WHERE owner_key=? ORDER BY created_at DESC LIMIT 30', [owner.key]);
     // extracting 阶段自动推进：档案转写完成 → 进入原文确认；失败 → extract_failed
     for (const row of rows) {
+      if (row.status === 'active' && row.kind === 'viral' && row.stage === 'transcript') {
+        let currentState = {};
+        try { currentState = JSON.parse(row.state || '{}'); } catch { /* ignore */ }
+        if (transcriptQualityIssue(currentState.transcript)) {
+          const nextState = { ...currentState, extractError: '这条视频没有识别到清晰口播，只检测到背景音乐、环境声或画面文字。请重新转写、手动粘贴画面文案，或换一条有人声的视频。', message: '' };
+          await wfUpdate(row.id, owner.key, { stage: 'extract_failed', state: JSON.stringify(nextState) });
+          row.stage = 'extract_failed';
+          row.state = JSON.stringify(nextState);
+          continue;
+        }
+      }
       if (row.status !== 'active' || row.stage !== 'extracting') continue;
       let st = {};
       try { st = JSON.parse(row.state || '{}'); } catch { /* ignore */ }
@@ -4425,7 +4437,15 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
       const tsRow = await arow('SELECT status, text, title, nickname FROM junshi_workbench_transcripts WHERE id=?', [st.transcriptId]).catch(() => null);
       if (!tsRow) continue;
       if (tsRow.status === 'succeeded') {
-        const nextState = { ...st, transcript: String(tsRow.text || '').slice(0, 4000), transcriptNickname: tsRow.nickname || '', message: '' };
+        const transcriptText = String(tsRow.text || '').trim();
+        if (transcriptQualityIssue(transcriptText)) {
+          const nextState = { ...st, transcript: transcriptText.slice(0, 4000), transcriptNickname: tsRow.nickname || '', extractError: '这条视频没有识别到清晰口播，只检测到背景音乐、环境声或画面文字。请重新转写、手动粘贴画面文案，或换一条有人声的视频。', message: '' };
+          await wfUpdate(row.id, owner.key, { stage: 'extract_failed', state: JSON.stringify(nextState) });
+          row.stage = 'extract_failed';
+          row.state = JSON.stringify(nextState);
+          continue;
+        }
+        const nextState = { ...st, transcript: transcriptText.slice(0, 4000), transcriptNickname: tsRow.nickname || '', message: '' };
         await wfUpdate(row.id, owner.key, { stage: 'transcript', state: JSON.stringify(nextState) });
         row.stage = 'transcript';
         row.state = JSON.stringify(nextState);
@@ -4612,10 +4632,21 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
       if (!HOTSPOT_ANGLES.some((item) => item[0] === angle)) throw errors.badRequest('未知结合方式', 'VALIDATION_ERROR', { field: 'angle' });
       state.angle = angle;
       await wfUpdate(wfId, owner.key, { stage: 'brain', state: JSON.stringify(state) });
-    } else if (action === 'confirm_transcript' && wf.kind === 'viral' && wf.stage === 'transcript') {
+    } else if (action === 'retry_transcript' && wf.kind === 'viral' && wf.stage === 'extract_failed') {
+      const transcriptId = text(state.transcriptId);
+      const transcriptRow = transcriptId ? await arow('SELECT * FROM junshi_workbench_transcripts WHERE id=? AND owner_key=?', [transcriptId, owner.key]) : null;
+      if (!transcriptRow) throw errors.badRequest('这条原文没有可重试的转写记录，请手动填写或换一条来源', 'WORKBENCH_TRANSCRIPT_NOT_FOUND');
+      if (transcriptRow.status === 'running') throw errors.badRequest('这条视频还在转写中，请稍等。', 'WORKBENCH_TRANSCRIPT_BUSY');
+      rateLimit(owner.key);
+      const job = jobStart(owner, '视频转写', String(transcriptRow.title || '重新提取口播').slice(0, 60));
+      await job.promise;
+      await wfUpdate(wfId, owner.key, { stage: 'extracting', error: '', state: JSON.stringify({ ...state, extractError: '', message: '正在重新提取这条视频的口播文案…' }) });
+      void runTranscriptionPipeline(owner, transcriptId, job);
+    } else if (action === 'confirm_transcript' && wf.kind === 'viral' && ['transcript', 'extract_failed'].includes(wf.stage)) {
       const transcript = text(ctx.body?.text).slice(0, 4000);
       if (!transcript) throw errors.badRequest('原文不能为空', 'VALIDATION_ERROR', { field: 'text' });
       state.transcript = transcript;
+      state.extractError = '';
       if (ctx.body?.rewritePlan === true) {
         state.strength = state.strength || 'medium';
         state.planOptions = [];
@@ -4625,7 +4656,7 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
         rateLimit(owner.key);
         const job = jobStart(owner, '爆款复刻', '拆解原文并设计改写方案');
         await job.promise;
-        await wfUpdate(wfId, owner.key, { stage: 'planning', error: '', state: JSON.stringify({ ...state, message: '正在拆解爆款机制，并设计 3 套改写方案…' }) });
+        await wfUpdate(wfId, owner.key, { stage: 'planning', error: '', state: JSON.stringify({ ...state, extractError: '', message: '正在拆解爆款机制，并设计 3 套改写方案…' }) });
         startWfPlans(ctx, owner, wfId, job);
       } else {
         // 0.6.2 及以前客户端兼容：没有 rewritePlan 标记时保留原有直写流程。

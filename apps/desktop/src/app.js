@@ -422,8 +422,10 @@ function renderWorkflowComposer() {
           ? `<label class="production-field full"><span>选择一条已转写作品</span><select id="workflow-viral-transcript">${readyTranscripts.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title || item.nickname || '未命名作品')}</option>`).join('')}</select></label>`
           : `<div class="workflow-warning">还没有可用的转写档案。先去「同行采集」或「我的数据」采集一条作品。</div>`;
     const sourceTip = source === 'link'
-      ? '链接会先在本机抖音浏览器打开并读取作品，再上传视频进入转写；如遇登录或验证码，请先在「本地抖音采集」窗口完成。'
-      : '只学习结构、节奏和表达方法；不会照抄原文，也不会冒充原作者。';
+      ? '链接会先在本机抖音浏览器打开并读取作品，再上传视频进入转写；如遇登录或验证码，请先在「本地抖音采集」窗口完成。系统只提取人声口播，纯音乐或只有画面文字时要手动填写。'
+      : source === 'upload'
+        ? '系统只提取视频里的人声口播；纯音乐或只有画面文字时，会提示重新转写或手动填写。'
+        : '只学习结构、节奏和表达方法；不会照抄原文，也不会冒充原作者。';
     form = `${sourceTabs}${sourceInput}<div class="workflow-composer-tip">${sourceTip}</div>`;
   } else {
     const mode = composer.mode || 'keyword';
@@ -483,7 +485,9 @@ function renderWorkflowCard() {
   if (['extracting', 'searching'].includes(wf.stage)) {
     body = `<div class="workflow-loading"><span class="spinner"></span><b>${escapeHtml(stateData.message || (wf.stage === 'searching' ? '正在联网搜索近期热点…' : '正在提取参考原文…'))}</b><p>这一步可能需要几十秒，完成后会自动出现下一步。</p></div>`;
   } else if (wf.stage === 'extract_failed' || wf.stage === 'search_failed') {
-    body = `<div class="workflow-error"><b>${wf.stage === 'search_failed' ? '热点搜索没有完成' : '参考原文提取失败'}</b><p>${escapeHtml(stateData.extractError || wf.error || '可以重试，或换一种来源 / 手动填写。')}</p><div class="workflow-actions">${wf.stage === 'search_failed' ? '<button type="button" class="btn primary small" data-action="workflow-search-retry">重新搜索</button><button type="button" class="btn secondary small" data-action="workflow-search-manual">改用手动填写</button>' : '<button type="button" class="btn secondary small" data-action="workflow-cancel">放弃并换来源</button>'}</div></div>`;
+    body = wf.stage === 'search_failed'
+      ? `<div class="workflow-error"><b>热点搜索没有完成</b><p>${escapeHtml(stateData.extractError || wf.error || '可以重试，或换一种来源 / 手动填写。')}</p><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-search-retry">重新搜索</button><button type="button" class="btn secondary small" data-action="workflow-search-manual">改用手动填写</button></div></div>`
+      : `<div class="workflow-error"><b>没有提取到可用的人声文案</b><p>${escapeHtml(stateData.extractError || wf.error || '请重新转写、手动粘贴画面文案，或换一条有人声的视频。')}</p><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-retry-transcript">重新提取</button><button type="button" class="btn secondary small" data-action="workflow-cancel">放弃并换来源</button></div></div><label class="production-field full"><span>或手动粘贴这条视频的文案</span><textarea id="workflow-manual-transcript" rows="8" maxlength="4000" placeholder="把画面字幕、口播稿或你整理出的文案粘贴到这里"></textarea></label><div class="workflow-actions"><button type="button" class="btn primary small" data-action="workflow-confirm-manual-transcript" ${state.workflowBusy ? 'disabled' : ''}>用手动文案拆解改写方案 →</button></div>`;
   } else if (wf.stage === 'transcript') {
     body = `<label class="production-field full"><span>确认提取到的原文</span><textarea id="workflow-transcript" rows="10" maxlength="4000">${escapeHtml(stateData.transcript || '')}</textarea></label><div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-copy-transcript">复制原文</button><button type="button" class="btn primary small" data-action="workflow-confirm-transcript" ${state.workflowBusy ? 'disabled' : ''}>确认原文，拆解改写方案 →</button></div>`;
   } else if (wf.stage === 'planning') {
@@ -2017,6 +2021,8 @@ async function handleAction(action, target) {
   if (action === 'workflow-regenerate') { await runWorkflowAction({ action: 'regenerate' }); return; }
   if (action === 'workflow-select-idea') { await runWorkflowAction({ action: 'select_idea', optionId: target?.dataset?.optionId || '' }); return; }
   if (action === 'workflow-confirm-transcript') { await runWorkflowAction({ action: 'confirm_transcript', text: String(document.querySelector('#workflow-transcript')?.value || ''), rewritePlan: true }); return; }
+  if (action === 'workflow-confirm-manual-transcript') { await runWorkflowAction({ action: 'confirm_transcript', text: String(document.querySelector('#workflow-manual-transcript')?.value || ''), rewritePlan: true }); return; }
+  if (action === 'workflow-retry-transcript') { await runWorkflowAction({ action: 'retry_transcript' }); return; }
   if (action === 'workflow-select-plan') { await runWorkflowAction({ action: 'select_rewrite_plan', planId: target?.dataset?.planId || '' }); return; }
   if (action === 'workflow-regenerate-plans') { await runWorkflowAction({ action: 'regenerate_plans' }); return; }
   if (action === 'workflow-reselect-plan') { await runWorkflowAction({ action: 'reselect_rewrite_plan' }); return; }
