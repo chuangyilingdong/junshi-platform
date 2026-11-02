@@ -4434,7 +4434,7 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
       let st = {};
       try { st = JSON.parse(row.state || '{}'); } catch { /* ignore */ }
       if (!st.transcriptId) continue;
-      const tsRow = await arow('SELECT status, text, title, nickname FROM junshi_workbench_transcripts WHERE id=?', [st.transcriptId]).catch(() => null);
+      const tsRow = await arow('SELECT status, text, title, nickname, error FROM junshi_workbench_transcripts WHERE id=?', [st.transcriptId]).catch(() => null);
       if (!tsRow) continue;
       if (tsRow.status === 'succeeded') {
         const transcriptText = String(tsRow.text || '').trim();
