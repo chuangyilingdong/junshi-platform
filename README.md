@@ -1,5 +1,7 @@
 # junshi-platform
 
+![CI](https://github.com/chuangyilingdong/junshi-platform/actions/workflows/ci.yml/badge.svg)
+
 招生军师独立仓库：桌面客户端、独立 API、抖音 Worker、静态资料、数据库迁移和验收脚本。
 
 ## 当前状态
