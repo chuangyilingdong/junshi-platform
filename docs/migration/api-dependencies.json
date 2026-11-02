@@ -1,8 +1,8 @@
 {
   "generatedForDate": "2026-10-27",
   "apiRoot": "apps/api/src",
-  "fileCount": 28,
-  "dependencyCount": 116,
+  "fileCount": 29,
+  "dependencyCount": 117,
   "missingCount": 0,
   "missing": [],
   "dependencies": [
@@ -173,6 +173,13 @@
       "kind": "relative",
       "exists": true,
       "target": "apps/api/src/lib.js"
+    },
+    {
+      "importer": "apps/api/src/routes/junshiWorkbench.js",
+      "specifier": "../services/avatarSegments.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/avatarSegments.js"
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",

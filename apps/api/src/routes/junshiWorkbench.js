@@ -41,6 +41,7 @@ import {
   parseFaceSession,
   safeLipSyncEndTime,
 } from '../services/junshiAvatar.js';
+import { executeAvatarSegments, selectAvatarRetryTargets } from '../services/avatarSegments.js';
 import {
   createDouyinPairing,
   douyinAssistants,
@@ -4164,19 +4165,11 @@ async function runTalkingHead(owner, { runId, text, speakerId, voiceRow, imageAs
   }
   let meta = {};
   try { meta = runRow.meta ? JSON.parse(runRow.meta) : {}; } catch { meta = {}; }
-  const selected = Array.isArray(segmentIndices) && segmentIndices.length
-    ? new Set(segmentIndices.map((value) => Number(value)).filter((value) => value > 0))
-    : null;
   // 底片只要还在 20 小时有效期内就复用；即便第一段就失败、还没有 done 段，
   // 也不该为同一条文案重新生成 6 秒底片（这是重复付费）。
   const canReuseBase = Boolean(retry && meta.baseUrl
     && Date.now() - Number(meta.baseAt || 0) < 20 * 60 * 60 * 1000);
-  const targets = canReuseBase
-    ? segments.filter((segment) => segment.status !== 'done' && (!selected || selected.has(Number(segment.index))))
-    : segments;
-  if (!canReuseBase) {
-    for (const segment of segments) { segment.status = 'pending'; segment.error = ''; }
-  }
+  const { targets } = selectAvatarRetryTargets(segments, { retry, canReuseBase, segmentIndices });
   const steps = [
     { key: 'base', label: '生成人物底片（形象照 → 视频）', status: canReuseBase ? 'done' : 'running' },
     { key: 'tts', label: `口播语音合成 · ${segments.length} 段`, status: 'pending' },
@@ -4224,41 +4217,33 @@ async function runTalkingHead(owner, { runId, text, speakerId, voiceRow, imageAs
       await avatarMetaUpdate(runId, owner.key, meta);
       await mark('base', 'done');
     }
-    let failures = 0;
     if (!targets.length) await mark('face', 'done');
     await mark('tts', 'running');
     await mark('lipsync', 'running');
-    for (const segment of targets) {
-      if (segment.status === 'done') continue;
-      segment.status = 'running'; segment.error = ''; segment.note = '';
-      await avatarSegmentsUpdate(runId, owner.key, segments);
-      try {
+    const execution = await executeAvatarSegments({
+      segments,
+      targets,
+      persist: async (current) => avatarSegmentsUpdate(runId, owner.key, current),
+      execute: async (segment) => {
         // ⓪ 每段单独做一次人脸分析：同一 session 连续 lip-sync 会被上游判过期。
         await mark('face', 'running');
         await refreshAvatarFaceSession(config, meta);
         await avatarMetaUpdate(runId, owner.key, meta);
         await mark('face', 'done');
         const audio = await synthAvatarSegmentAudio({ config, owner, runId, segment, speakerId, voiceRow, speed, meta });
-        Object.assign(segment, {
-          audioSeconds: audio.audioSeconds, audioStorageKey: audio.storage.storageKey,
-          audioStorageBackend: audio.storage.storageBackend,
-        });
         const video = await lipSyncAvatarSegment({ config, meta, audioUrl: audio.url, audioSeconds: audio.audioSeconds, runId, segment });
-        Object.assign(segment, {
-          status: 'done',
+        await avatarMetaUpdate(runId, owner.key, meta);
+        return {
+          audioSeconds: audio.audioSeconds,
+          audioStorageKey: audio.storage.storageKey,
+          audioStorageBackend: audio.storage.storageBackend,
           videoStorageKey: video.videoStorage.storageKey,
           videoStorageBackend: video.videoStorage.storageBackend,
           durationSeconds: video.videoSeconds,
-        });
-        await avatarMetaUpdate(runId, owner.key, meta);
-      } catch (error) {
-        failures += 1;
-        segment.status = 'failed';
-        segment.error = String(error?.message || error).slice(0, 500);
-      }
-      await avatarSegmentsUpdate(runId, owner.key, segments);
-    }
-    const remaining = segments.filter((segment) => segment.status !== 'done');
+        };
+      },
+    });
+    const remaining = execution.remaining;
     if (remaining.length) {
       throw new Error(`还有 ${remaining.length} 段没有合成成功${remaining[0]?.error ? `：${remaining[0].error}` : ''}；已成功的段保留，可点「重试失败分段」`);
     }
