@@ -24,3 +24,11 @@
 - 耗时：约 19 秒
 
 当前 CI 只覆盖 API、平台核心和仓库静态检查；Electron 桌面测试仍在本机执行。
+## 生产部署
+
+- 工作流：`.github/workflows/deploy-production.yml`
+- 触发：`workflow_dispatch`，输入 main 上的完整 commit SHA
+- 运行环境：GitHub Environment `production`
+- 部署脚本：`scripts/deploy-production.sh`
+- 当前状态：脚本已通过 `--no-switch` 验证；production secrets 和首次工作流运行待完成
+- 详细说明：`STAGE-D-CICD.md`
