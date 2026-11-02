@@ -73,3 +73,38 @@ POST /api/junshi/compliance         -> 200
 - 自动托管完整确认链路
 
 文本、图片上传/下载、视频生成、数字人和旧网页基础回归均已通过生产验收。
+## 自动托管完整确认流程
+
+使用同一测试机构创建临时会话，预填单段口播并走完整托管确认：
+
+- `autoHost=true`
+- 单段口播
+- 数字人合成
+- 自动打包
+
+结果：
+
+```json
+{
+  "status": "succeeded",
+  "autoHostStage": "ready",
+  "elapsedMs": 421207,
+  "outputBytes": 595058,
+  "packageStatus": "ready",
+  "packageAssets": 4
+}
+```
+
+自动打包产出视频、封面、字幕和 ZIP 四类资产。
+
+清理结果：
+
+```json
+{
+  "tempAssets": 0,
+  "tempVoices": 0,
+  "recentAvatarRuns": 0,
+  "recentWorks": 0,
+  "tempSessions": 0
+}
+```
