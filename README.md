@@ -19,7 +19,7 @@
 - 自动托管完整确认与自动打包通过
 - Electron 客户端登录/采集/工作台/完整 UX 冒烟通过
 - 抖音采集助手配对与元数据上报通过
-- 旧 `/junshi` 网页关键接口回归通过
+- 旧 `/junshi` 网页真实 Chrome 交互回归通过
 - observation-only 计费账本已实现并验证
 - 生产健康检查每 5 分钟运行，失败写 journal；支持可选 Webhook
 - GitHub Actions CI 已通过
