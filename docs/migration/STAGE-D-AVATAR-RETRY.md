@@ -73,3 +73,9 @@ API 测试结果：
 ## 结论
 
 数字人失败分段重试状态机已通过确定性故障注入验证。
+## 生产部署
+
+- release：`/srv/junshi-platform/releases/20261102T035410Z`
+- `junshi-api`：active，NRestarts=0
+- 本地 health / ready：通过
+- 公网 `/api/junshi/health` / `/api/health`：通过

@@ -30,6 +30,7 @@ jobs:
       - run: pnpm test:platform
       - run: pnpm test:api
       - run: pnpm test:healthcheck
+      - run: pnpm verify:release-runtime
       - run: node scripts/verify-migration.mjs
       - run: node scripts/audit-api-dependencies.mjs
       - run: node scripts/verify-deploy-templates.mjs

@@ -4,7 +4,7 @@
 
 上线顺序：
 
-1. 构建并检查仓库
+1. 构建并检查仓库（必须运行 `node scripts/verify-release-runtime.mjs`）
 2. 部署到 `/srv/junshi-platform/current`
 3. 安装 systemd unit
 4. 启动 `junshi-api`，验证 `127.0.0.1:8790/health`
