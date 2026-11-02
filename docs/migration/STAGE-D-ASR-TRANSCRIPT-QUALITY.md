@@ -89,7 +89,7 @@ Hello，我是 DeepSeek V4.1-Flash。
 API：
 
 ```text
-33/33 passed
+34/34 passed
 ```
 
 覆盖：
@@ -102,6 +102,8 @@ API：
 - 重试清空旧文本
 - 真实失败原因透传
 - 画面文字回退生成 8 帧拼图并标记 visual 来源
+- transcriptMode 在重试 payload 中保留
+- 自动、口播、画面文字、口播+画面文字四种模式
 
 桌面端：
 
@@ -136,21 +138,21 @@ viral.visualFallback=pass
 
 ## 生产状态
 
-- release：`/srv/junshi-platform/releases/20261102T060516Z`
-- production commit：`8912dbf7b1ab28a20571ee3f3c9f2832cc0796fe`
-- CI：`41397661779`，success
+- release：`/srv/junshi-platform/releases/20261102T062208Z`
+- production commit：`79c5b792a58d355360fb2b4a96c815f2329a4586`
+- CI：`41399416143`，success
 - `junshi-api`、Nginx、旧网站服务：active
 - `junshi-api` NRestarts：0
 - health / ready：通过
 
-## 客户端 0.6.5
+## 客户端 0.6.6
 
-- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.5.exe`
-- 大小：`121,663,736` bytes
-- SHA256：`7DE1500258968139A2D5EB3C90C325B646D83C5725F4C9DF9D564F67A6968BB3`
-- blockmap SHA256：`71F38D8B6FCA20E6D116E64F7F81F7EE075C918CD22678C379032C385EE2E3CA`
+- 安装包：`E:\junshi-platform\apps\desktop\release\招生军师-Setup-0.6.6.exe`
+- 大小：`121,664,079` bytes
+- SHA256：`FB03C481C7FD0E605A57E6C5ED7325F823A9CE2CC2540E97326D9AB9B164DBE3`
+- blockmap SHA256：`57D8A7A0EB08D87B6F2C00D50A8F1630621CA2886F8C655F5876842BE63850E0`
 - 线上更新：`https://aicyld.com/downloads/junshi-desktop/latest.yml`
-- 线上版本：`0.6.5`
+- 线上版本：`0.6.6`
 - `latest.yml`、exe、blockmap 均返回 200，exe 支持 Range
 - 未签名
 

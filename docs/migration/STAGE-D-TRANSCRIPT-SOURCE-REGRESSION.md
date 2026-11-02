@@ -68,3 +68,24 @@ pnpm regression:transcript-sources
 - 强制 visual 模式不得偷偷调用 ASR 并把结果当画面文字。
 - both 模式只有两份都成功时才是 mixed。
 - 临时 session、workflow、transcript 全部清理。
+
+## 2026-11-02 真实回归结果
+
+前 6 个必测用例全部通过：
+
+```text
+visual-speech-only   extract_failed
+visual-auto          transcript / visual / 216 字
+visual-explicit      transcript / visual / 174 字
+speech-auto          transcript / speech / 2348 字
+speech-explicit      transcript / speech / 2348 字
+speech-both          transcript / mixed / 2788 字
+```
+
+`speech-both` 说明口播和画面文字都成功时，会合并成 `mixed`，并分别标注来源。
+
+后 4 个扩展用例因未配置对应素材而跳过，不影响本轮必须通过项。
+
+生产 release：`/srv/junshi-platform/releases/20261102T062208Z`
+
+回归结束后临时 session、workflow、transcript 均已清理。

@@ -9,7 +9,7 @@
 - 迁移基线：`bf98fed22be069b1fafd0d0980d48d8608d0c3fa`
 - 当前阶段：阶段 D 完成（独立 API 已部署并完成 Nginx 灰度切流）
 - 独立服务：`junshi-api`，`127.0.0.1:8790`，production active
-- 当前 release：`/srv/junshi-platform/releases/20261102T060516Z`
+- 当前 release：`/srv/junshi-platform/releases/20261102T062208Z`
 - 桌面客户端源码已迁入 `apps/desktop`
 - `/api/junshi/*` 路由、服务、Worker、资料和迁移已迁入
 - API 可在 mock 环境独立启动，SSE 对话链路已跑通
