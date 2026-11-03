@@ -109,6 +109,26 @@ export function audit(text) {
   return { pack: { id: pack.id, name: pack.name, updated: pack.updated, source: pack.source }, scan, verdict: verdictOf(scan) };
 }
 
+export function auditMaterial(text) {
+  const content = String(text || '');
+  const result = audit(content);
+  const risky = [];
+  if (/股权|终身班|存课|膨胀金|众筹|消费券/.test(content)) risky.push('涉及长期预收（股权/终身班/存课/膨胀金/众筹/消费券），先核当地预收费监管口径');
+  if (/抽奖|砸金蛋|红包墙|彩票|大转盘/.test(content)) risky.push('涉及有奖销售，需确认资质与最高奖金额上限');
+  if (/原价\s*\d+\s*[^\d]{0,10}(现价|到手|只要)\s*0/.test(content)) risky.push('价格对比表述（原价 X 现价 0）存在价格欺诈风险');
+  return {
+    length: content.length,
+    verdict: result.verdict,
+    total: result.scan.hits.length,
+    hits: result.scan.hits,
+    whitelist: result.scan.whitelist,
+    redlines: result.scan.redlines,
+    risky,
+    rules: { name: result.pack.name, updated: result.pack.updated, source: result.pack.source },
+    pass: result.verdict.level === 'ok' && risky.length === 0,
+  };
+}
+
 /**
  * AI 深度审读提示词 —— 从 traffic-compass 的 audit_skill.md 改写：
  *   保留：读语境判定（重点防误杀）、最小改动建议（保留作者口语腔）、严格 JSON 输出

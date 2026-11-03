@@ -17,6 +17,8 @@ const state = {
   remote: null,
   refs: [],
   reports: { items: [], ownCount: 0, pendingCount: 0 },
+  reportLinkable: [],
+  reportLinkTarget: null,
   jobs: [],
   jobKinds: [],
   jobStatuses: [],
@@ -28,6 +30,7 @@ const state = {
   cycleBusy: false,
   cyclePollTimer: null,
   transcripts: [],
+  transcriptMetrics: null,
   createReference: null,
   createBusy: false,
   createAnswer: '',
@@ -42,6 +45,7 @@ const state = {
   workflowMeta: { styles: [], angles: [], strengths: [], brains: [] },
   workflowBusy: false,
   workflowComposer: null,
+  workflowTranscriptDraft: null,
   workflowPollTimer: null,
   brains: [],
   memories: [],
@@ -63,9 +67,11 @@ const state = {
     preflight: null,
     plan: null,
     work: null,
+    talkingTextDraft: null,
     renders: [],
     package: null,
     packageForm: null,
+    compliance: { checking: false, result: null, text: '', error: '' },
     busy: false,
     message: '',
     error: '',
@@ -78,6 +84,8 @@ const state = {
   updateBusy: false,
   loaded: false,
 };
+
+let guideReturnFocus = null;
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -169,6 +177,7 @@ function resetProduction() {
     preflight: null,
     plan: null,
     work: null,
+    talkingTextDraft: null,
     renders: [],
     package: null,
     packageForm: null,
@@ -179,6 +188,121 @@ function resetProduction() {
     pollTimer: null,
     pollBusy: false,
   };
+}
+
+function emptyProductionCompliance() {
+  return { checking: false, result: null, text: '', error: '' };
+}
+
+function invalidateProductionCompliance() {
+  if (!state.production) return;
+  state.production.compliance = emptyProductionCompliance();
+  const panel = document.querySelector('.compliance-panel');
+  if (panel) panel.outerHTML = renderProductionCompliance();
+}
+
+function complianceTextFromDraft() {
+  const draft = state.production?.draft || {};
+  return [draft.title, draft.hook, draft.script]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, 20000);
+}
+
+function complianceTextFromWork() {
+  const production = state.production || {};
+  const work = production.work || {};
+  if (work.productionMode === 'talking_head') {
+    const talkingText = document.querySelector('#production-talking-text')?.value ?? production.talkingTextDraft ?? work.talkingHead?.text;
+    return [work.title, talkingText].map((value) => String(value || '').trim()).filter(Boolean).join('\n\n').slice(0, 20000);
+  }
+  const script = work.directorScript || {};
+  const shots = (Array.isArray(script.shots) ? script.shots : []).map((shot) => ({
+    ...shot,
+    ...(production.shotEdits?.[String(shot.index)] || {}),
+  }));
+  return [work.title, script.title, script.strategy, ...shots.flatMap((shot) => [shot.voiceover, shot.overlay])]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, 20000);
+}
+
+function complianceTextFromPackage() {
+  const form = state.production?.packageForm || {};
+  return [form.title, form.coverSubtitle, form.description, form.tags, complianceTextFromWork()]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, 20000);
+}
+
+function currentProductionComplianceText() {
+  const stage = state.production?.stage;
+  if (stage === 'draft') return complianceTextFromDraft();
+  if (stage === 'package' || stage === 'publish') return complianceTextFromPackage();
+  if (stage === 'plan') {
+    const plan = state.production?.plan || {};
+    return [plan.title, plan.hook, plan.script].map((value) => String(value || '').trim()).filter(Boolean).join('\n\n').slice(0, 20000);
+  }
+  return complianceTextFromWork();
+}
+
+async function runProductionCompliance(content, { force = false, quiet = false, readCurrent = currentProductionComplianceText } = {}) {
+  const p = state.production;
+  let normalized = String(content || '').trim();
+  if (!p) return null;
+  if (!normalized) {
+    if (!quiet) toast('当前没有可检查的文案', 'error');
+    return null;
+  }
+  if (!force && p.compliance?.result && p.compliance.text === normalized) return p.compliance.result;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    p.compliance = { checking: true, result: null, text: normalized, error: '' };
+    renderCreateOnly();
+    try {
+      const result = await api('/compliance/check', { method: 'POST', body: { content: normalized }, timeout: 30000 });
+      const latest = String(readCurrent() || '').trim();
+      if (p !== state.production || latest !== normalized) {
+        if (attempt === 0 && p === state.production && latest) {
+          normalized = latest;
+          force = true;
+          continue;
+        }
+        const message = '体检期间文案发生了变化，请重新检查';
+        p.compliance = { checking: false, result: null, text: latest, error: message };
+        renderCreateOnly();
+        if (!quiet) toast(message, 'error');
+        return { stale: true, verdict: { level: 'block', text: message }, hits: [], redlines: [], risky: [], pass: false };
+      }
+      p.compliance = { checking: false, result, text: normalized, error: '' };
+      renderCreateOnly();
+      if (!quiet) {
+        const level = result?.verdict?.level;
+        if (level === 'block') toast('合规体检发现高风险，请先修改标红内容', 'error');
+        else if (level === 'fix') toast('合规体检完成：建议修改后再发布', '');
+        else toast('合规体检通过，可以继续', 'success');
+      }
+      return result;
+    } catch (error) {
+      if (p !== state.production) return { stale: true, verdict: { level: 'block' }, hits: [], redlines: [], risky: [], pass: false };
+      p.compliance = { checking: false, result: null, text: normalized, error: String(error?.message || error).slice(0, 300) };
+      renderCreateOnly();
+      toast(`合规体检失败：${p.compliance.error}`, 'error');
+      return null;
+    }
+  }
+  return null;
+}
+
+async function checkCurrentProductionCompliance() {
+  const p = state.production;
+  if (!p || p.compliance?.checking) return null;
+  if (p.stage === 'draft') syncProductionDraftFromDom();
+  if (p.stage === 'package') syncProductionPackageFromDom();
+  if (p.stage === 'script') syncProductionShotsFromDom();
+  return runProductionCompliance(currentProductionComplianceText(), { force: true });
 }
 
 function startProductionFlow() {
@@ -214,6 +338,7 @@ function pickProductionVersion(index) {
   state.production.draft.hook = firstSentence(version.script, 52);
   state.production.draft.script = version.script;
   state.production.draft.prompt = defaultVideoPrompt(version.script);
+  invalidateProductionCompliance();
   renderCreateOnly();
 }
 
@@ -278,7 +403,7 @@ async function loadAll({ silent = false, rerender = true } = {}) {
     $('#view').innerHTML = '<div class="loading-block"><span class="spinner"></span><b>正在准备你的工作台…</b></div>';
   }
   try {
-    const [bootstrap, collector, remote, refs, reports, jobs, transcripts, workflowData, brainsData, memoriesData, assetsData, voicesData, plansData, cyclesData] = await Promise.all([
+    const [bootstrap, collector, remote, refs, reports, jobs, transcripts, transcriptMetrics, workflowData, brainsData, memoriesData, assetsData, voicesData, plansData, cyclesData] = await Promise.all([
       app.bootstrap(),
       app.getCollectorStatus().catch(() => null),
       api('/bootstrap'),
@@ -286,6 +411,7 @@ async function loadAll({ silent = false, rerender = true } = {}) {
       api('/reports?accountId=default'),
       api('/jobs?limit=100'),
       api('/transcripts'),
+      api('/metrics/transcripts?accountId=default&days=7').catch(() => null),
       api('/workflows?accountId=default'),
       api('/brains'),
       api('/memories?accountId=default'),
@@ -299,12 +425,15 @@ async function loadAll({ silent = false, rerender = true } = {}) {
     state.remote = remote;
     state.refs = Array.isArray(refs?.items) ? refs.items : [];
     state.reports = reports || { items: [], ownCount: 0, pendingCount: 0 };
+    state.reportLinkable = Array.isArray(reports?.linkable) ? reports.linkable : [];
+    if (state.reportLinkTarget && !state.reports.items.some((item) => item.id === state.reportLinkTarget)) state.reportLinkTarget = null;
     state.jobs = Array.isArray(jobs?.items) ? jobs.items : [];
     state.jobKinds = Array.isArray(jobs?.kinds) ? jobs.kinds : [];
     state.jobStatuses = Array.isArray(jobs?.statuses) ? jobs.statuses : [];
     state.jobTotal = Number(jobs?.total || state.jobs.length || 0);
     state.loaded = true;
     state.transcripts = Array.isArray(transcripts?.items) ? transcripts.items : [];
+    state.transcriptMetrics = transcriptMetrics || null;
     state.brains = Array.isArray(brainsData?.items) ? brainsData.items : [];
     state.memories = Array.isArray(memoriesData?.items) ? memoriesData.items : [];
     state.assets = Array.isArray(assetsData?.items) ? assetsData.items : [];
@@ -318,6 +447,7 @@ async function loadAll({ silent = false, rerender = true } = {}) {
       brains: Array.isArray(workflowData?.brains) ? workflowData.brains : [],
     };
     if (!state.workflow) state.workflow = (workflowData?.items || []).find((item) => item.status === 'active') || null;
+    if (state.workflow?.stage !== 'transcript') state.workflowTranscriptDraft = null;
     updateShell();
     if (rerender) render();
     if (state.workflow?.status === 'active') startWorkflowPolling();
@@ -504,6 +634,44 @@ function workflowTranscriptModeControl(stateData) {
   return `<div class="workflow-context"><b>当前转写来源：${escapeHtml(workflowTranscriptModeLabel(current))}</b><p>切换来源会重新提取，新结果成功后才替换当前稿。</p><div class="chip-group">${WORKFLOW_TRANSCRIPT_MODE_OPTIONS.map(([value, label]) => `<button type="button" class="choice-chip${current === value ? ' active' : ''}" data-action="workflow-switch-transcript-mode" data-mode="${value}" ${state.workflowBusy ? 'disabled' : ''}>${label}</button>`).join('')}${previous}</div></div>`;
 }
 
+function formatTranscriptClock(seconds) {
+  const value = Math.max(0, Number(seconds) || 0);
+  const minutes = Math.floor(value / 60);
+  const rest = Math.floor(value % 60);
+  return `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
+}
+
+function composeTranscriptSegments(segments, source = 'all') {
+  const items = Array.isArray(segments) ? segments : [];
+  const speech = items.filter((item) => (item.source || 'speech') === 'speech').map((item) => String(item.text || '').trim()).filter(Boolean);
+  const visual = items.filter((item) => item.source === 'visual').map((item) => String(item.text || '').trim()).filter(Boolean);
+  if (source === 'speech') return speech.join('\n');
+  if (source === 'visual') return visual.join('\n');
+  if (speech.length && visual.length) return `【口播】\n${speech.join('\n')}\n\n【画面文字】\n${visual.join('\n')}`;
+  return (speech.length ? speech : visual).join('\n');
+}
+
+function renderTranscriptSegmentReview(stateData) {
+  const segments = (Array.isArray(stateData.transcriptSegments) ? stateData.transcriptSegments : [])
+    .filter((item) => item && String(item.text || '').trim())
+    .slice(0, 80);
+  if (!segments.length) return '';
+  const speechCount = segments.filter((item) => (item.source || 'speech') === 'speech').length;
+  const visualCount = segments.filter((item) => item.source === 'visual').length;
+  const rows = segments.map((item, index) => {
+    const source = item.source === 'visual' ? 'visual' : 'speech';
+    const start = Number(item.start);
+    const end = Number(item.end);
+    const time = Number.isFinite(start) && Number.isFinite(end) && end > start ? `${formatTranscriptClock(start)}–${formatTranscriptClock(end)}` : `第 ${index + 1} 段`;
+    return `<div class="transcript-segment ${source}"><span class="transcript-source ${source}">${source === 'visual' ? '画面' : '口播'}</span><time>${escapeHtml(time)}</time><p>${escapeHtml(item.text)}</p></div>`;
+  }).join('');
+  return `<details class="transcript-segment-review">
+    <summary><span>查看分段来源与时间码</span><small>${segments.length} 段 · 口播 ${speechCount} · 画面文字 ${visualCount}</small></summary>
+    <div class="transcript-segment-tools"><span>快速整理确认稿</span><div><button type="button" class="btn ghost small" data-action="workflow-transcript-filter" data-source="speech" ${speechCount ? '' : 'disabled'}>只保留口播</button><button type="button" class="btn ghost small" data-action="workflow-transcript-filter" data-source="visual" ${visualCount ? '' : 'disabled'}>只保留画面文字</button><button type="button" class="btn ghost small" data-action="workflow-transcript-filter" data-source="all">恢复合并稿</button></div></div>
+    <div class="transcript-segment-list">${rows}</div>
+  </details>`;
+}
+
 function renderWorkflowCard() {
   const wf = state.workflow;
   if (!wf) return '';
@@ -528,7 +696,8 @@ function renderWorkflowCard() {
         ? `<div class="workflow-warning"><b>这是画面文字，不是口播转写</b><p>系统没有识别到清晰人声，已自动读取视频画面里的文字。${escapeHtml(visualMeta)}请先核对，必要时直接修改，再进入拆解改写。</p></div>`
         : '';
     const transcriptLabel = mixedTranscript ? '确认口播 + 画面文字合并稿' : visualTranscript ? '确认画面文字' : '确认提取到的原文';
-    body = `${sourceNotice}${workflowTranscriptModeControl(stateData)}<label class="production-field full"><span>${transcriptLabel}</span><textarea id="workflow-transcript" rows="10" maxlength="4000">${escapeHtml(stateData.transcript || '')}</textarea></label><div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-copy-transcript">复制原文</button><button type="button" class="btn primary small" data-action="workflow-confirm-transcript" ${state.workflowBusy ? 'disabled' : ''}>确认原文，拆解改写方案 →</button></div>`;
+    const transcriptDraft = state.workflowTranscriptDraft !== null ? state.workflowTranscriptDraft : (stateData.transcript || '');
+    body = `${sourceNotice}${workflowTranscriptModeControl(stateData)}<label class="production-field full"><span>${transcriptLabel}</span><textarea id="workflow-transcript" rows="10" maxlength="4000">${escapeHtml(transcriptDraft)}</textarea></label>${renderTranscriptSegmentReview(stateData)}<div class="workflow-actions"><button type="button" class="btn secondary small" data-action="workflow-copy-transcript">复制原文</button><button type="button" class="btn primary small" data-action="workflow-confirm-transcript" ${state.workflowBusy ? 'disabled' : ''}>确认原文，拆解改写方案 →</button></div>`;
   } else if (wf.stage === 'planning') {
     body = `<div class="workflow-loading"><span class="spinner"></span><b>${escapeHtml(stateData.message || '正在拆解爆款机制…')}</b><p>先判断原文靠什么成立，再设计 3 套可选择的改写方案；这一步不会直接写正文。</p></div>`;
   } else if (wf.stage === 'plan_failed') {
@@ -568,10 +737,24 @@ function brainStatusBadge(status) {
   return `<span class="badge neutral">${escapeHtml(status || '待处理')}</span>`;
 }
 
+const BRAIN_PROFILE_LABELS = {
+  positioning: '账号定位',
+  cadence: '选题节奏',
+  tone: '表达风格',
+  thinking_framework: '思考框架',
+  topic_approach: '话题切入',
+  audience: '目标受众',
+  style: '写作风格',
+};
+
 function renderBrainDetails(brain) {
   const profile = brain.profile && typeof brain.profile === 'object' ? brain.profile : {};
   const sections = Array.isArray(brain.sections) ? brain.sections : [];
-  return `<div class="brain-detail"><div class="brain-detail-grid">${Object.entries(profile).map(([key, value]) => `<div><span>${escapeHtml(key)}</span><p>${escapeHtml(value)}</p></div>`).join('')}</div>${sections.length ? `<div class="brain-section-list">${sections.map((section) => `<article><b>${escapeHtml(section.title || '方法')}</b><p>${escapeHtml(section.content || '')}</p></article>`).join('')}</div>` : '<p class="section-note">这份档案暂时没有展开章节。</p>'}</div>`;
+  const profileRows = Object.entries(profile)
+    .filter(([, value]) => String(value || '').trim())
+    .map(([key, value]) => `<div><span>${escapeHtml(BRAIN_PROFILE_LABELS[key] || key)}</span><p>${escapeHtml(value)}</p></div>`)
+    .join('');
+  return `<div class="brain-detail">${profileRows ? `<div class="brain-detail-grid">${profileRows}</div>` : ''}${sections.length ? `<div class="brain-section-list">${sections.map((section) => `<article><b>${escapeHtml(section.title || '方法')}</b><p>${escapeHtml(section.content || '')}</p></article>`).join('')}</div>` : '<p class="section-note">这份档案暂时没有展开章节。</p>'}</div>`;
 }
 
 function renderBrainsPage() {
@@ -591,9 +774,39 @@ function renderAssetsPage() {
   return `<div class="context-panel"><div class="context-panel-head"><div><button type="button" class="production-back" data-action="context-back">← 返回做内容</button><h2>素材库</h2><p>形象照、音色参考、复刻参考和成片都在这里。当前先提供上传、查看与下载，树形文件夹和 AI 分析在后续批次。</p></div><div class="context-head-actions"><button type="button" class="btn secondary small" data-action="asset-upload" data-kind="image">上传图片</button><button type="button" class="btn secondary small" data-action="asset-upload" data-kind="audio">上传音频</button><button type="button" class="btn secondary small" data-action="asset-upload" data-kind="video">上传视频</button></div></div><div class="asset-summary"><span>${items.length} 个素材</span><span>${items.filter((item) => item.kind === 'image').length} 图</span><span>${items.filter((item) => item.kind === 'audio').length} 音频</span><span>${items.filter((item) => item.kind === 'video').length} 视频</span></div>${items.length ? `<div class="asset-grid">${items.map((item) => `<article class="asset-card"><div class="asset-kind">${item.kind === 'image' ? '图' : item.kind === 'audio' ? '音' : item.kind === 'video' ? '视' : '文'}</div><div class="asset-main"><b>${escapeHtml(item.fileName || item.file_name || '未命名素材')}</b><small>${escapeHtml(item.folder || '未分类')} · ${fmtBytes(item.fileSize || item.file_size)} · ${fmtDate(item.createdAt, true)}</small></div><button type="button" class="btn ghost small" data-action="asset-download" data-asset-id="${escapeHtml(item.id)}" data-asset-name="${escapeHtml(item.fileName || item.file_name || '素材')}">下载</button></article>`).join('')}</div>` : '<div class="workflow-empty"><b>素材库还是空的</b><p>上传形象照、音色参考或复刻视频后，会出现在这里，也能在制作方式里直接选择。</p></div>'}</div>`;
 }
 
+function fmtDurationMs(value) {
+  const ms = Number(value) || 0;
+  if (!ms) return '—';
+  return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
+}
+
+function renderTranscriptMetrics() {
+  const metrics = state.transcriptMetrics;
+  if (!metrics || !Number(metrics.extractions)) {
+    return `<section class="transcript-metrics"><div class="transcript-metrics-head"><div><span class="production-kicker">近 7 天</span><h3>转写质量</h3></div></div><p class="section-note">还没有转写指标。完成一次视频提取后，这里会显示成功率、耗时和人工修改率。</p></section>`;
+  }
+  const asr = metrics.asr || {};
+  const visual = metrics.visual || {};
+  const confirmations = metrics.confirmations || {};
+  const failures = Array.isArray(metrics.failureReasons) ? metrics.failureReasons : [];
+  const recent = Array.isArray(metrics.recent) ? metrics.recent.slice(0, 5) : [];
+  return `<section class="transcript-metrics">
+    <div class="transcript-metrics-head"><div><span class="production-kicker">近 ${Number(metrics.days || 7)} 天</span><h3>转写质量</h3><p>ASR/OCR 成功率、耗时和人工修改率，用于判断抽帧、识别和失败恢复是否可靠。</p></div><span class="badge neutral">${Number(metrics.extractions)} 次提取</span></div>
+    <div class="transcript-metric-grid">
+      <div class="transcript-metric-card"><span>成功率</span><b>${Number(metrics.successRate || 0).toFixed(1)}%</b><small>成功 ${Number(metrics.succeeded || 0)} / 失败 ${Number(metrics.failed || 0)}</small></div>
+      <div class="transcript-metric-card"><span>ASR 平均耗时</span><b>${fmtDurationMs(asr.avgDurationMs)}</b><small>成功 ${Number(asr.succeeded || 0)} · 空 ${Number(asr.empty || 0)} · 失败 ${Number(asr.failed || 0)}</small></div>
+      <div class="transcript-metric-card"><span>画面文字平均耗时</span><b>${fmtDurationMs(visual.avgDurationMs)}</b><small>平均 ${Number(visual.avgFrames || 0)} 帧 · 成功 ${Number(visual.succeeded || 0)}</small></div>
+      <div class="transcript-metric-card"><span>人工修改率</span><b>${Number(confirmations.editedRate || 0).toFixed(1)}%</b><small>确认 ${Number(confirmations.total || 0)} 次 · 平均改动 ${(Number(confirmations.avgEditRatio || 0) * 100).toFixed(1)}%</small></div>
+    </div>
+    <div class="transcript-metric-detail"><span>总耗时 P95</span><b>${fmtDurationMs(metrics.durationMs?.p95)}</b><span>总耗时中位</span><b>${fmtDurationMs(metrics.durationMs?.p50)}</b></div>
+    ${failures.length ? `<div class="transcript-failure-list"><b>主要失败原因</b>${failures.map((item) => `<div><span>${escapeHtml(item.code || 'FAILED')}</span><small>${Number(item.count || 0)} 次 · ${escapeHtml(item.message || '')}</small></div>`).join('')}</div>` : '<p class="section-note transcript-metrics-ok">近 7 天没有失败记录。</p>'}
+    ${recent.length ? `<div class="transcript-recent-list"><b>最近记录</b>${recent.map((item) => `<div><span class="badge ${item.status === 'succeeded' || item.status === 'confirmed' ? 'success' : item.status === 'failed' ? 'failed' : 'neutral'}">${item.eventType === 'confirmation' ? '人工确认' : item.status === 'succeeded' ? '成功' : '失败'}</span><div><b>${escapeHtml(item.mode || 'auto')} · ${escapeHtml(item.resultSource || item.inputSource || '—')}</b><small>${item.eventType === 'confirmation' ? `改动 ${(Number(item.editRatio || 0) * 100).toFixed(1)}% · ${Number(item.originalChars || 0)} → ${Number(item.editedChars || 0)} 字` : `${fmtDurationMs(item.durationMs)} · ${Number(item.resultChars || 0)} 字 · ${Number(item.resultSegments || 0)} 段`}</small></div><time>${escapeHtml(fmtDate(item.createdAt, true))}</time></div>`).join('')}</div>` : ''}
+  </section>`;
+}
+
 function renderJobsPage() {
   const jobs = state.jobs || [];
-  return `<div class="context-panel"><div class="context-panel-head"><div><button type="button" class="production-back" data-action="context-back">← 返回做内容</button><h2>任务中心</h2><p>文案、转写、编导稿、渲染、数字人和发布包任务都在这里。失败任务可直接重试。</p></div><button type="button" class="btn secondary small" data-action="jobs-refresh">刷新</button></div><div class="job-summary"><span>${state.jobTotal} 个任务</span>${(state.jobStatuses || []).map((item) => `<span>${escapeHtml(item.status)} ${item.count}</span>`).join('')}</div>${jobs.length ? `<div class="job-center-list">${jobs.map((job) => `<article class="job-center-card"><div class="job-center-head"><div><span>${escapeHtml(job.kind || '任务')}</span><b>${escapeHtml(job.detail || '未命名任务')}</b></div>${statusBadge(job.status)}</div><p>${escapeHtml(job.error || (job.status === 'running' ? '任务进行中…' : '任务已结束'))}</p><div class="job-center-foot"><small>${fmtDate(job.createdAt, true)}${Number(job.attempts) ? ` · 第 ${Number(job.attempts) + 1} 次` : ''}</small>${job.status === 'failed' ? `<button type="button" class="btn secondary small" data-action="job-retry" data-job-id="${escapeHtml(job.id)}">重试</button>` : ''}</div></article>`).join('')}</div>` : '<div class="workflow-empty"><b>还没有任务</b><p>生成、转写、渲染和发布包任务会在这里留下记录。</p></div>'}</div>`;
+  return `<div class="context-panel"><div class="context-panel-head"><div><button type="button" class="production-back" data-action="context-back">← 返回做内容</button><h2>任务中心</h2><p>文案、转写、编导稿、渲染、数字人和发布包任务都在这里。失败任务可直接重试。</p></div><button type="button" class="btn secondary small" data-action="jobs-refresh">刷新</button></div>${renderTranscriptMetrics()}<div class="job-summary"><span>${state.jobTotal} 个任务</span>${(state.jobStatuses || []).map((item) => `<span>${escapeHtml(item.status)} ${item.count}</span>`).join('')}</div>${jobs.length ? `<div class="job-center-list">${jobs.map((job) => `<article class="job-center-card"><div class="job-center-head"><div><span>${escapeHtml(job.kind || '任务')}</span><b>${escapeHtml(job.detail || '未命名任务')}</b></div>${statusBadge(job.status)}</div><p>${escapeHtml(job.error || (job.status === 'running' ? '任务进行中…' : '任务已结束'))}</p><div class="job-center-foot"><small>${fmtDate(job.createdAt, true)}${Number(job.attempts) ? ` · 第 ${Number(job.attempts) + 1} 次` : ''}</small>${job.status === 'failed' ? `<button type="button" class="btn secondary small" data-action="job-retry" data-job-id="${escapeHtml(job.id)}">重试</button>` : ''}</div></article>`).join('')}</div>` : '<div class="workflow-empty"><b>还没有任务</b><p>生成、转写、渲染和发布包任务会在这里留下记录。</p></div>'}</div>`;
 }
 
 function renderPlansPage() {
@@ -693,6 +906,50 @@ function productionShotRoleLabel(role) {
   return { hook: '开场钩子', pain: '痛点', proof: '证明', turn: '转折', cta: '行动引导' }[role] || role || '镜头';
 }
 
+function complianceSeverityLabel(severity) {
+  return { high: '高风险', mid: '需修改', low: '请确认' }[severity] || severity || '提示';
+}
+
+function productionComplianceBlocked(result) {
+  if (!result) return false;
+  if (result.stale) return true;
+  const hits = Array.isArray(result.hits) ? result.hits : [];
+  const redlines = Array.isArray(result.redlines) ? result.redlines : [];
+  return result.verdict?.level === 'block' || redlines.length > 0 || hits.some((item) => item.severity === 'high');
+}
+
+function renderProductionCompliance() {
+  const compliance = state.production?.compliance || emptyProductionCompliance();
+  const result = compliance.result;
+  const blocked = productionComplianceBlocked(result);
+  const level = blocked ? 'block' : (result?.verdict?.level || '');
+  const label = { ok: '通过', fix: '建议修改', block: '高风险' }[level] || '未检查';
+  const redlines = Array.isArray(result?.redlines) ? result.redlines : [];
+  const hits = Array.isArray(result?.hits) ? result.hits : [];
+  const risky = Array.isArray(result?.risky) ? result.risky : [];
+  const issues = [
+    ...redlines.map((item) => ({ kind: '资质红线', title: item.trigger || item.field || '资质相关表述', detail: item.note || '请人工核对资质与宣传口径', severity: 'high' })),
+    ...hits.map((item) => ({ kind: item.category || '敏感表述', title: item.word || '', detail: item.replace ? `建议改为：${item.replace}` : (item.note || '请人工核对语境'), severity: item.severity })),
+    ...risky.map((item) => ({ kind: '经营风险', title: item, detail: '需人工确认当地监管口径', severity: 'mid' })),
+  ].slice(0, 8);
+  const brief = compliance.checking
+    ? '<span class="compliance-loading"><span class="spinner"></span><span>正在检查标题、口播和发布文案…</span></span>'
+    : compliance.error
+      ? `<span class="compliance-brief error">${escapeHtml(compliance.error)}</span>`
+      : result
+        ? `<span class="compliance-brief ${escapeHtml(level)}">${escapeHtml(blocked ? '发现高风险表述，必须先修改。' : (result.verdict?.text || label))}${issues.length ? ` 共 ${issues.length} 项待核对。` : ''}</span>`
+        : '<span class="compliance-brief">提交方案、确认渲染和生成发布包时会自动检查。</span>';
+  const issueList = issues.length
+    ? `<ul class="compliance-list">${issues.map((item) => `<li><span class="compliance-severity ${escapeHtml(item.severity || 'low')}">${escapeHtml(complianceSeverityLabel(item.severity))}</span><div><b>${escapeHtml(item.kind)} · ${escapeHtml(item.title)}</b><small>${escapeHtml(item.detail)}</small></div></li>`).join('')}</ul>`
+    : '';
+  const detailsOpen = Boolean(compliance.error || issues.length);
+  const detailsLabel = compliance.error ? '查看错误详情' : issues.length ? `查看 ${issues.length} 项命中与修改建议` : '查看规则说明';
+  return `<section class="compliance-panel ${escapeHtml(level || 'idle')}">
+    <div class="compliance-head"><div><span class="production-kicker">内容合规</span><h4>合规体检 · ${escapeHtml(label)}</h4>${brief}</div><button type="button" class="btn secondary small" data-action="production-compliance-check" ${compliance.checking ? 'disabled' : ''}>${compliance.checking ? '检查中…' : result ? '重新体检' : '检查当前文案'}</button></div>
+    <details class="compliance-details" ${detailsOpen ? 'open' : ''}><summary>${escapeHtml(detailsLabel)}</summary>${compliance.error ? `<div class="compliance-error"><p>${escapeHtml(compliance.error)}</p></div>` : issueList}<small class="compliance-note">这是文案维度的自动初筛${result?.rules?.name ? `，规则包：${escapeHtml(result.rules.name)}` : ''}，不替代法律意见。最终发布前仍需人工核对资质、价格和承诺。</small></details>
+  </section>`;
+}
+
 function renderProductionDraft() {
   const p = state.production;
   const d = p.draft || {};
@@ -744,6 +1001,7 @@ function renderProductionDraft() {
     <div class="production-mode-grid">${[['storyboard', '分镜成片', '编导稿 → 逐镜检查 → 视频渲染'], ['talking_head', '口播成片', '形象照 + 音色 → 分段对口型'], ['hosted', '一键托管', '只写主题 → 自动写稿 → 确认合成']].map(([value, label, desc]) => `<button type="button" class="production-mode-card${mode === value ? ' active' : ''}" data-action="production-mode" data-mode="${value}"><b>${label}</b><small>${desc}</small></button>`).join('')}</div>
     ${versions}
     ${modeFields}
+    ${renderProductionCompliance()}
     <div class="production-footer"><button type="button" class="btn ghost" data-action="production-exit">返回生成结果</button><div><small>${note}</small><button type="button" class="btn primary" data-action="${primaryAction}" ${p.busy || (mode !== 'storyboard' && !avatarReady) ? 'disabled' : ''}>${p.busy ? '<span class="spinner"></span> 提交中…' : primaryLabel}</button></div></div>
   </div>`;
 }
@@ -763,6 +1021,7 @@ function renderProductionPlan() {
     ${estimate ? `<div class="production-estimate"><b>后续渲染预估</b><span>${escapeHtml(estimate)}</span></div>` : '<div class="production-estimate warn"><b>尚未拿到渲染估价</b><span>请重新检查方案后再提交。</span></div>'}
     ${info.videoReady === false ? '<div class="production-warning">当前视频渠道未配置。可以先生成编导稿，但渲染前需要管理员配置视频渠道。</div>' : ''}
     ${missing.length ? `<div class="production-warning">方案还缺：${escapeHtml(missing.join('、'))}</div>` : ''}
+    ${renderProductionCompliance()}
     <label class="production-check"><input type="checkbox" id="production-plan-confirm"><span>我已核对文案、目标、时长和画面描述，确认创建视频任务并生成编导稿。此步骤不会直接渲染，也不会产生渲染费用。</span></label>
     <div class="production-footer"><button type="button" class="btn ghost" data-action="production-edit-plan">返回修改方案</button><div><small>编导稿生成完成后，还要再检查分镜并单独确认渲染。</small><button type="button" class="btn primary" data-action="production-submit-plan" ${canSubmit ? '' : 'disabled'}>${p.busy ? '<span class="spinner"></span> 创建中…' : '确认方案并生成编导稿 →'}</button></div></div>
   </div>`;
@@ -783,7 +1042,8 @@ function renderProductionScript() {
     const plan = th.plan || {};
     return `<div class="production-panel"><div class="production-panel-head"><div><span class="production-kicker">第 3 步 · 确认口播与分段</span><h3>${escapeHtml(work.title || '数字人口播')}</h3><p>${escapeHtml(work.message || '核对口播稿、音色、形象照和分段后再确认合成。')}</p></div><span class="production-note">${work.autoHost?.enabled ? '托管待确认' : '待确认'}</span></div>
       <div class="production-summary-grid"><div><span>音色</span><b>${escapeHtml(th.voiceName || '已选择')}</b></div><div><span>形象照</span><b>${escapeHtml(th.imageFileName || '已选择')}</b></div><div><span>语速</span><b>${escapeHtml(th.speed || 'natural')}</b></div><div><span>预计分段</span><b>${Number(plan.batchCount || (plan.segments || []).length || 0)} 段</b></div></div>
-      <label class="production-field full" style="margin-top:14px"><span>口播稿</span><textarea id="production-talking-text" rows="10" maxlength="3000">${escapeHtml(th.text || state.production?.draft?.script || '')}</textarea></label>
+      <label class="production-field full" style="margin-top:14px"><span>口播稿</span><textarea id="production-talking-text" rows="10" maxlength="3000">${escapeHtml(p.talkingTextDraft ?? th.text ?? state.production?.draft?.script ?? '')}</textarea></label>
+      ${renderProductionCompliance()}
       <div class="production-warning">确认后会创建数字人底片、TTS、人脸分析和逐段对口型任务，可能产生视频生成费用。成片完成后仍会先进入发布包，不会自动发布。</div>
       <label class="production-check"><input type="checkbox" id="production-render-confirm"><span>我已核对口播稿、音色、形象照和语速，同意提交数字人合成。</span></label>
       <div class="production-footer"><div class="production-footer-left"><button type="button" class="btn ghost" data-action="production-edit-plan">返回重选</button><button type="button" class="btn secondary" data-action="production-save-talking" ${p.busy ? 'disabled' : ''}>保存口播稿</button></div><div><small>确认后才进入第 4 步数字人合成。</small><button type="button" class="btn primary" data-action="production-confirm-render" ${p.busy ? 'disabled' : ''}>${p.busy ? '<span class="spinner"></span> 提交中…' : '确认口播，开始合成 →'}</button></div></div>
@@ -808,6 +1068,7 @@ function renderProductionScript() {
     <div class="production-shot-list">${shotHtml}</div>
     ${script?.notes ? `<p class="section-note">${escapeHtml(script.notes)}</p>` : ''}
     ${productionEstimateText(p.preflight) ? `<div class="production-estimate"><b>渲染预估</b><span>${escapeHtml(productionEstimateText(p.preflight))}</span></div>` : ''}
+    ${renderProductionCompliance()}
     <div class="production-warning">确认渲染后会产生视频生成费用，并提交到平台视频渠道。请先逐镜核对，确认无误再继续。</div>
     <label class="production-check"><input type="checkbox" id="production-render-confirm"><span>我已检查编导稿和分镜，同意提交视频渲染。渲染完成后仍会先生成发布包，不会自动发布。</span></label>
     <div class="production-footer"><div class="production-footer-left"><button type="button" class="btn ghost" data-action="production-edit-plan">返回方案</button><button type="button" class="btn secondary" data-action="production-regenerate-script" ${p.busy ? 'disabled' : ''}>换一版编导稿</button><button type="button" class="btn secondary" data-action="production-save-script" ${p.busy ? 'disabled' : ''}>保存本版修改</button></div><div><small>确认后才进入第 4 步渲染。</small><button type="button" class="btn primary" data-action="production-confirm-render" ${p.busy ? 'disabled' : ''}>${p.busy ? '<span class="spinner"></span> 提交中…' : '确认分镜，提交渲染 →'}</button></div></div>
@@ -839,13 +1100,13 @@ function renderProductionPackage() {
     return `<div class="production-panel"><div class="production-panel-head"><div><span class="production-kicker">第 5 步 · 发布包</span><h3>正在生成发布包</h3><p>系统正在烧字幕、制作封面、整理标题和发布文案。</p></div><span class="production-note">生成中</span></div><div class="production-loading"><span class="spinner"></span><b>通常几十秒</b><p>完成后会显示下载发布包按钮。</p></div><div class="production-footer"><button type="button" class="btn ghost" data-action="production-exit">返回生成结果</button><button type="button" class="btn secondary" data-action="production-refresh-work">刷新进度</button></div></div>`;
   }
   const form = p.packageForm || {};
-  return `<div class="production-panel"><div class="production-panel-head"><div><span class="production-kicker">第 5 步 · 发布包</span><h3>生成字幕、封面和发布文案</h3><p>这一步会生成包装后的 mp4、封面、字幕、发布说明和 ZIP。不会替你发布。</p></div><span class="production-note">待生成</span></div><div class="production-form-grid"><label class="production-field full"><span>发布标题（封面和发布共用）</span><input data-package-field="title" maxlength="120" value="${escapeHtml(form.title || '')}"></label><label class="production-field"><span>字幕样式</span><select data-package-field="subtitleStyle">${[['white', '白字黑边'], ['yellow', '黄字黑边'], ['bold', '大字报'], ['none', '不烧字幕']].map(([value, label]) => `<option value="${value}"${form.subtitleStyle === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label><label class="production-field"><span>封面副标题</span><input data-package-field="coverSubtitle" maxlength="60" value="${escapeHtml(form.coverSubtitle || '')}" placeholder="例如：3–8 岁家长必看"></label><label class="production-field full"><span>发布描述</span><textarea data-package-field="description" rows="4" maxlength="1000">${escapeHtml(form.description || '')}</textarea></label><label class="production-field full"><span>话题标签（空格或逗号分隔）</span><input data-package-field="tags" value="${escapeHtml(form.tags || '')}" placeholder="教育 招生 家长必看"></label></div>${pkg?.status === 'failed' ? `<div class="production-warning">上次打包失败：${escapeHtml(pkg.error || '请重试')}</div>` : ''}<div class="production-footer"><button type="button" class="btn ghost" data-action="production-back-render">返回成片</button><div><small>生成发布包不会自动发布。</small><button type="button" class="btn primary" data-action="production-create-package" ${p.busy ? 'disabled' : ''}>${p.busy ? '<span class="spinner"></span> 提交中…' : '生成发布包 →'}</button></div></div></div>`;
+  return `<div class="production-panel"><div class="production-panel-head"><div><span class="production-kicker">第 5 步 · 发布包</span><h3>生成字幕、封面和发布文案</h3><p>这一步会生成包装后的 mp4、封面、字幕、发布说明和 ZIP。不会替你发布。</p></div><span class="production-note">待生成</span></div><div class="production-form-grid"><label class="production-field full"><span>发布标题（封面和发布共用）</span><input data-package-field="title" maxlength="120" value="${escapeHtml(form.title || '')}"></label><label class="production-field"><span>字幕样式</span><select data-package-field="subtitleStyle">${[['white', '白字黑边'], ['yellow', '黄字黑边'], ['bold', '大字报'], ['none', '不烧字幕']].map(([value, label]) => `<option value="${value}"${form.subtitleStyle === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label><label class="production-field"><span>封面副标题</span><input data-package-field="coverSubtitle" maxlength="60" value="${escapeHtml(form.coverSubtitle || '')}" placeholder="例如：3–8 岁家长必看"></label><label class="production-field full"><span>发布描述</span><textarea data-package-field="description" rows="4" maxlength="1000">${escapeHtml(form.description || '')}</textarea></label><label class="production-field full"><span>话题标签（空格或逗号分隔）</span><input data-package-field="tags" value="${escapeHtml(form.tags || '')}" placeholder="教育 招生 家长必看"></label></div>${pkg?.status === 'failed' ? `<div class="production-warning">上次打包失败：${escapeHtml(pkg.error || '请重试')}</div>` : ''}${renderProductionCompliance()}<div class="production-footer"><button type="button" class="btn ghost" data-action="production-back-render">返回成片</button><div><small>生成发布包不会自动发布。</small><button type="button" class="btn primary" data-action="production-create-package" ${p.busy ? 'disabled' : ''}>${p.busy ? '<span class="spinner"></span> 提交中…' : '生成发布包 →'}</button></div></div></div>`;
 }
 
 function renderProductionPublish() {
   const p = state.production;
   const pkg = p.package || {};
-  return `<div class="production-panel"><div class="production-panel-head"><div><span class="production-kicker">第 6 步 · 发布与复盘</span><h3>发布包已准备好，最后再人工发布</h3><p>客户端不会自动发布。请人工检查并上传到抖音 / 视频号，发布后回来同步作品数据。</p></div><span class="production-note">最后一公里</span></div><div class="production-publish-steps"><div><span>1</span><b>下载并检查发布包</b><p>核对成片、封面、字幕、标题和描述。</p></div><div><span>2</span><b>去平台发布</b><p>使用你自己的抖音 / 视频号账号完成发布。</p></div><div><span>3</span><b>回客户端同步作品</b><p>进入“我的数据”同步作品，再看这条内容的效果。</p></div></div><div class="production-copy-block"><b>发布文案</b><p>${escapeHtml(pkg.title || '')}</p><p>${escapeHtml(pkg.description || '')}</p><p>${(pkg.tags || []).map((tag) => `#${escapeHtml(tag)}`).join(' ')}</p></div><div class="production-footer"><div class="production-footer-left"><button type="button" class="btn secondary" data-action="production-download-package">下载发布包</button><button type="button" class="btn secondary" data-action="production-copy-package">复制发布文案</button></div><div><small>发布后再同步，才能拿到真实数据。</small><button type="button" class="btn primary" data-action="production-sync-after-publish">去同步作品数据 →</button></div></div></div>`;
+  return `<div class="production-panel"><div class="production-panel-head"><div><span class="production-kicker">第 6 步 · 发布与复盘</span><h3>发布包已准备好，最后再人工发布</h3><p>客户端不会自动发布。请人工检查并上传到抖音 / 视频号，发布后回来同步作品数据。</p></div><span class="production-note">最后一公里</span></div><div class="production-publish-steps"><div><span>1</span><b>下载并检查发布包</b><p>核对成片、封面、字幕、标题和描述。</p></div><div><span>2</span><b>去平台发布</b><p>使用你自己的抖音 / 视频号账号完成发布。</p></div><div><span>3</span><b>回客户端同步作品</b><p>进入“我的数据”同步作品，再看这条内容的效果。</p></div></div><div class="production-copy-block"><b>发布文案</b><p>${escapeHtml(pkg.title || '')}</p><p>${escapeHtml(pkg.description || '')}</p><p>${(pkg.tags || []).map((tag) => `#${escapeHtml(tag)}`).join(' ')}</p></div>${renderProductionCompliance()}<div class="production-footer"><div class="production-footer-left"><button type="button" class="btn secondary" data-action="production-download-package">下载发布包</button><button type="button" class="btn secondary" data-action="production-copy-package">复制发布文案</button></div><div><small>发布后再同步，才能拿到真实数据。</small><button type="button" class="btn primary" data-action="production-sync-after-publish">去同步作品数据 →</button></div></div></div>`;
 }
 
 function renderProduction() {
@@ -954,7 +1215,10 @@ async function pollWorkflow() {
       brains: Array.isArray(data?.brains) ? data.brains : state.workflowMeta.brains,
     };
     const latest = (data?.items || []).find((item) => item.id === current.id);
-    if (latest) state.workflow = latest;
+    if (latest) {
+      state.workflow = latest;
+      if (latest.stage !== 'transcript') state.workflowTranscriptDraft = null;
+    }
     if (state.page === 'create') renderCreateOnly();
     if (state.workflow?.status === 'active') state.workflowPollTimer = setTimeout(() => { state.workflowPollTimer = null; void pollWorkflow(); }, 1400);
   } catch {
@@ -964,6 +1228,7 @@ async function pollWorkflow() {
 
 function openWorkflowComposer(kind) {
   if (state.workflow?.status === 'active') { toast('先完成或放弃当前工作流', 'error'); return; }
+  state.workflowTranscriptDraft = null;
   state.workflowComposer = { kind, sourceType: 'text', mode: 'keyword' };
   state.workflowBusy = false;
   renderCreateOnly();
@@ -1051,6 +1316,7 @@ function adoptWorkflowDraft(draft) {
   state.createType = '口播稿';
   resetProduction();
   stopWorkflowPolling();
+  state.workflowTranscriptDraft = null;
   state.workflowComposer = null;
   renderCreateOnly();
   toast('已采用这一版。下一步：定稿并进入完整制作流程。', 'success');
@@ -1059,6 +1325,7 @@ function adoptWorkflowDraft(draft) {
 async function runWorkflowAction(payload) {
   const wf = state.workflow;
   if (!wf?.id || state.workflowBusy) return;
+  if (['switch_transcript_mode', 'retry_transcript', 'restore_previous_transcript', 'confirm_transcript'].includes(payload.action)) state.workflowTranscriptDraft = null;
   stopWorkflowPolling();
   state.workflowBusy = true;
   renderCreateOnly();
@@ -1088,7 +1355,7 @@ async function runWorkflowAction(payload) {
 }
 
 async function cancelWorkflow() {
-  if (!state.workflow?.id) { state.workflow = null; state.workflowComposer = null; renderCreateOnly(); return; }
+  if (!state.workflow?.id) { state.workflow = null; state.workflowComposer = null; state.workflowTranscriptDraft = null; renderCreateOnly(); return; }
   if (!confirm('确定放弃当前工作流？已生成的候选会保留在平台任务里，但不会继续推进。')) return;
   try {
     const data = await api(`/workflows/${encodeURIComponent(state.workflow.id)}/action`, { method: 'POST', body: { action: 'cancel' } });
@@ -1100,13 +1367,25 @@ async function cancelWorkflow() {
   stopWorkflowPolling();
   state.workflow = null;
   state.workflowComposer = null;
+  state.workflowTranscriptDraft = null;
   renderCreateOnly();
 }
 
 function copyWorkflowTranscript() {
-  const text = String(state.workflow?.state?.transcript || '');
+  const text = String(document.querySelector('#workflow-transcript')?.value ?? state.workflowTranscriptDraft ?? state.workflow?.state?.transcript ?? '');
   if (!text) return;
   void navigator.clipboard.writeText(text).then(() => toast('原文已复制', 'success')).catch(() => toast('复制失败', 'error'));
+}
+
+function applyWorkflowTranscriptFilter(source) {
+  const segments = state.workflow?.state?.transcriptSegments || [];
+  const text = composeTranscriptSegments(segments, source);
+  if (!text.trim()) { toast('这个来源没有可用分段', 'error'); return; }
+  state.workflowTranscriptDraft = text;
+  const textarea = document.querySelector('#workflow-transcript');
+  if (textarea) textarea.value = text;
+  const label = source === 'speech' ? '只保留口播' : source === 'visual' ? '只保留画面文字' : '恢复合并稿';
+  toast(`已${label}，确认后会按这份稿继续`, 'success');
 }
 
 function openContextPanel(panel) {
@@ -1136,11 +1415,15 @@ async function uploadLibraryAsset(kind) {
 
 async function refreshJobs() {
   try {
-    const data = await api('/jobs?limit=100');
+    const [data, metrics] = await Promise.all([
+      api('/jobs?limit=100'),
+      api('/metrics/transcripts?accountId=default&days=7').catch(() => state.transcriptMetrics),
+    ]);
     state.jobs = Array.isArray(data?.items) ? data.items : [];
     state.jobKinds = Array.isArray(data?.kinds) ? data.kinds : [];
     state.jobStatuses = Array.isArray(data?.statuses) ? data.statuses : [];
     state.jobTotal = Number(data?.total || state.jobs.length || 0);
+    state.transcriptMetrics = metrics || state.transcriptMetrics;
     if (state.contextPanel === 'jobs') renderCreateOnly();
   } catch (error) {
     toast(String(error?.message || error), 'error');
@@ -1351,6 +1634,7 @@ function setProductionMode(mode) {
   if (!state.production?.draft) return;
   state.production.draft.productionMode = ['storyboard', 'talking_head', 'hosted'].includes(mode) ? mode : 'storyboard';
   if (state.production.draft.productionMode === 'hosted') state.production.draft.resolution = '480P';
+  invalidateProductionCompliance();
   renderCreateOnly();
 }
 
@@ -1436,6 +1720,8 @@ async function createProductionTalking() {
   if (!p || p.busy) return;
   syncProductionDraftFromDom();
   if (!String(p.draft?.script || '').trim()) { toast('请先填写口播稿', 'error'); return; }
+  const compliance = await runProductionCompliance(complianceTextFromDraft(), { force: true, quiet: true });
+  if (productionComplianceBlocked(compliance)) { toast('合规体检发现高风险内容，请先修改口播稿', 'error'); return; }
   let body;
   try { body = { ...talkingWorkPayload(), speech: p.draft.script }; }
   catch (error) { toast(String(error?.message || error), 'error'); return; }
@@ -1461,6 +1747,12 @@ async function createProductionHosted() {
   syncProductionDraftFromDom();
   const topic = String(p.draft?.title || '').trim();
   if (!topic) { toast('请先写一个视频主题', 'error'); return; }
+  const compliance = await runProductionCompliance(topic, {
+    force: true,
+    quiet: true,
+    readCurrent: () => String(document.querySelector('[data-hosted-topic]')?.value || p.draft?.title || '').trim(),
+  });
+  if (productionComplianceBlocked(compliance)) { toast('合规体检发现高风险主题，请先修改再继续', 'error'); return; }
   let body;
   try { body = { ...talkingWorkPayload(), autoHost: true, topic }; }
   catch (error) { toast(String(error?.message || error), 'error'); return; }
@@ -1485,12 +1777,13 @@ async function createProductionHosted() {
 async function saveProductionTalking({ silent = false } = {}) {
   const p = state.production;
   if (p?.work?.productionMode !== 'talking_head' || !p.work.id) return false;
-  const speech = String(document.querySelector('#production-talking-text')?.value || p.work.talkingHead?.text || '').trim();
+  const speech = String(document.querySelector('#production-talking-text')?.value ?? p.talkingTextDraft ?? p.work.talkingHead?.text ?? '').trim();
   if (!speech) { toast('口播稿不能为空', 'error'); return false; }
   if (!silent) { p.busy = true; renderCreateOnly(); }
   try {
     const data = await api(`/video/works/${encodeURIComponent(p.work.id)}`, { method: 'PUT', body: { talkingHead: { text: speech } } });
     p.work = data.work || p.work;
+    p.talkingTextDraft = null;
     if (!silent) { p.busy = false; renderCreateOnly(); }
     toast('口播稿已保存，确认后重新合成', 'success');
     return true;
@@ -1605,6 +1898,8 @@ async function saveProductionPlan() {
   syncProductionDraftFromDom();
   const d = p.draft || {};
   if (!d.title || !d.script || !d.prompt) { toast('请先补全标题、完整口播和画面提示词', 'error'); return; }
+  const compliance = await runProductionCompliance(complianceTextFromDraft(), { force: true, quiet: true });
+  if (productionComplianceBlocked(compliance)) { toast('合规体检发现高风险内容，请先修改标红项再保存方案', 'error'); return; }
   p.busy = true;
   p.error = '';
   renderCreateOnly();
@@ -1637,6 +1932,9 @@ function editProductionPlan() {
   if (!p?.draft) return;
   p.stage = 'draft';
   p.error = '';
+  p.talkingTextDraft = null;
+  p.shotEdits = {};
+  invalidateProductionCompliance();
   renderCreateOnly();
 }
 
@@ -1745,7 +2043,7 @@ async function confirmProductionRender({ retry = false } = {}) {
   if (!retry && !document.querySelector('#production-render-confirm')?.checked) { toast('请先勾选确认已检查分镜', 'error'); return; }
   if (!confirm('确认提交视频渲染？这一步可能产生视频生成费用，渲染完成后仍不会自动发布。')) return;
   if (p.work.productionMode === 'talking_head') {
-    const nextSpeech = String(document.querySelector('#production-talking-text')?.value || p.work.talkingHead?.text || '').trim();
+    const nextSpeech = String(document.querySelector('#production-talking-text')?.value ?? p.talkingTextDraft ?? p.work.talkingHead?.text ?? '').trim();
     if (nextSpeech !== String(p.work.talkingHead?.text || '').trim()) {
       const saved = await saveProductionTalking({ silent: true });
       if (!saved) return;
@@ -1754,6 +2052,9 @@ async function confirmProductionRender({ retry = false } = {}) {
     const saved = await saveProductionScript({ silent: true });
     if (!saved) return;
   }
+  const compliance = await runProductionCompliance(complianceTextFromWork(), { force: true, quiet: true });
+  if (productionComplianceBlocked(compliance)) { toast('合规体检发现高风险内容，已阻止提交渲染', 'error'); return; }
+  if (!compliance && !confirm('合规体检暂时不可用。仍要继续提交视频渲染吗？')) return;
   p.busy = true;
   p.stage = 'render';
   p.error = '';
@@ -1796,6 +2097,9 @@ async function createProductionPackage() {
   syncProductionPackageFromDom();
   const form = p.packageForm || {};
   if (!String(form.title || '').trim()) { toast('请先填写发布标题', 'error'); return; }
+  const compliance = await runProductionCompliance(complianceTextFromPackage(), { force: true, quiet: true });
+  if (productionComplianceBlocked(compliance)) { toast('合规体检发现高风险内容，请先修改发布文案', 'error'); return; }
+  if (!compliance && !confirm('合规体检暂时不可用。仍要生成发布包吗？请先人工核对标题、描述和标签。')) return;
   p.busy = true;
   p.error = '';
   renderCreateOnly();
@@ -1912,8 +2216,60 @@ async function syncAllPeers() {
   render();
 }
 
+function renderPublishedLinkControls(item) {
+  if (item.origin !== 'douyin_assistant') return '';
+  const link = item.link || null;
+  if (link) {
+    const title = link.planTitle || link.packageTitle || link.workTitle || '生成方案';
+    return `<div class="published-link-state linked"><span class="badge success">已关联</span><div><b>${escapeHtml(title)}</b><small>${escapeHtml(link.hook || link.objective || '数据建议会结合这份方案分析')}</small></div><button type="button" class="btn ghost small" data-action="published-link-remove" data-published-id="${escapeHtml(item.id)}">取消关联</button></div>`;
+  }
+  if (state.reportLinkTarget !== item.id) {
+    return `<div class="published-link-state"><span class="badge neutral">未关联</span><div><b>关联生成方案</b><small>关联后才能比较方案、钩子和发布效果。</small></div><button type="button" class="btn secondary small" data-action="published-link-open" data-published-id="${escapeHtml(item.id)}">选择方案</button></div>`;
+  }
+  const options = state.reportLinkable || [];
+  if (!options.length) {
+    return `<div class="published-link-picker"><p>还没有可关联的已生成发布包。先完成一条视频的发布包，再回来关联。</p><button type="button" class="btn ghost small" data-action="published-link-cancel">收起</button></div>`;
+  }
+  return `<div class="published-link-picker"><label><span>选择这条作品由哪份生成内容制作</span><select id="published-link-package">${options.map((option) => `<option value="${escapeHtml(option.packageId)}">${escapeHtml(option.packageTitle || '未命名发布包')}${option.planTitle ? ` · ${escapeHtml(option.planTitle)}` : ''}</option>`).join('')}</select></label><div class="published-link-picker-actions"><button type="button" class="btn primary small" data-action="published-link-confirm" data-published-id="${escapeHtml(item.id)}">确认关联</button><button type="button" class="btn ghost small" data-action="published-link-cancel">取消</button></div></div>`;
+}
+
+async function refreshReports() {
+  const data = await api('/reports?accountId=default');
+  state.reports = data || { items: [], ownCount: 0, pendingCount: 0 };
+  state.reportLinkable = Array.isArray(data?.linkable) ? data.linkable : [];
+  render();
+}
+
+async function linkPublishedWork(publishedId) {
+  const packageId = String(document.querySelector('#published-link-package')?.value || '').trim();
+  if (!packageId) { toast('请先选择要关联的生成成片', 'error'); return; }
+  try {
+    await api(`/published-works/${encodeURIComponent(publishedId)}/link`, { method: 'POST', body: { packageId, accountId: 'default' } });
+    state.insight = '';
+    state.reportLinkTarget = null;
+    await refreshReports();
+    toast('已关联生成方案。下次生成数据建议会结合方案和钩子分析。', 'success');
+  } catch (error) {
+    toast(String(error?.message || error), 'error');
+  }
+}
+
+async function unlinkPublishedWork(publishedId) {
+  if (!confirm('确定取消这条作品与生成方案的关联吗？')) return;
+  try {
+    await api(`/published-works/${encodeURIComponent(publishedId)}/link?accountId=default`, { method: 'DELETE' });
+    state.insight = '';
+    await refreshReports();
+    toast('已取消关联', 'success');
+  } catch (error) {
+    toast(String(error?.message || error), 'error');
+  }
+}
+
 function renderReports() {
   const items = state.reports?.items || [];
+  const ownItems = items.filter((item) => item.origin === 'douyin_assistant');
+  const linkedCount = ownItems.filter((item) => item.link).length;
   const totals = items.reduce((sum, item) => {
     const stats = item.stats || {};
     sum.plays += Number(stats.plays || 0);
@@ -1922,12 +2278,12 @@ function renderReports() {
     return sum;
   }, { plays: 0, likes: 0, saves: 0 });
   return `<div class="page">
-    <div class="page-intro"><div><h2>我的数据</h2><p>先同步自己的作品，再看哪类内容真的有效。这里只展示结果，不让你做复杂配置。</p></div><div><button class="btn secondary" data-action="open-self">同步我的作品</button> <button class="btn primary" data-action="generate-insight" ${state.insightBusy || !items.length ? 'disabled' : ''}>${state.insightBusy ? '<span class="spinner"></span> 分析中' : '生成数据建议'}</button></div></div>
+    <div class="page-intro"><div><h2>我的数据</h2><p>先同步自己的作品，再把作品关联到生成方案，数据建议才能比较钩子、方案和目标的效果。</p></div><div><button class="btn secondary" data-action="open-self">同步我的作品</button> <button class="btn primary" data-action="generate-insight" ${state.insightBusy || !items.length ? 'disabled' : ''}>${state.insightBusy ? '<span class="spinner"></span> 分析中' : '生成数据建议'}</button></div></div>
     <div class="stats-grid"><div class="stat-card"><span>已复盘</span><b>${items.length}</b><small>条作品</small></div><div class="stat-card"><span>总播放</span><b>${fmtNumber(totals.plays)}</b><small>全部作品</small></div><div class="stat-card"><span>总点赞</span><b>${fmtNumber(totals.likes)}</b><small>全部作品</small></div><div class="stat-card"><span>总收藏</span><b>${fmtNumber(totals.saves)}</b><small>全部作品</small></div></div>
     ${items.length && !state.insight && !state.insightBusy ? `<div class="next-step-panel report-next"><div class="next-step-copy"><span>下一步</span><b>作品已同步，生成一份数据建议</b><small>看看哪类内容有效，再把建议直接变成下一条内容。</small></div><button class="btn primary small" data-action="generate-insight">生成数据建议</button></div>` : ''}
     ${state.insight ? `<div class="section-title"><h3>给你的建议</h3><span>基于最近 ${items.length} 条作品</span></div><section class="panel insight-panel"><div class="panel-body"><div class="output-text insight-output">${escapeHtml(state.insight)}</div><div class="next-step-panel"><div class="next-step-copy"><span>下一步</span><b>把建议变成一条内容</b><small>把这份判断带进“做内容”，生成可以继续进入完整制作流程的口播稿。</small></div><button class="btn primary small" data-action="insight-to-create">按建议写一条</button></div></div></section>` : ''}
-    <div class="section-title"><h3>已同步作品</h3><span>${items.length} 条</span></div>
-    ${items.length ? `<div class="list">${items.slice(0, 12).map((item) => { const stats = item.stats || {}; return `<div class="work-row"><b>${escapeHtml(item.topic || '未命名作品')}</b><span>播放 ${fmtNumber(stats.plays)}</span><span>赞 ${fmtNumber(stats.likes)}</span><strong>藏 ${fmtNumber(stats.saves)}</strong><span>${escapeHtml(stats.publishedAt || '')}</span></div>`; }).join('')}</div>` : `<div class="panel"><div class="empty-state"><span class="big-icon">▥</span><b>还没有作品数据</b><p>点“同步我的作品”，在内置浏览器里采集一次自己的主页。</p><button class="btn primary" data-action="open-self">同步我的作品</button></div></div>`}
+    <div class="section-title"><h3>已同步作品</h3><span>${items.length} 条${ownItems.length ? ` · 已关联 ${linkedCount}/${ownItems.length}` : ''}</span></div>
+    ${items.length ? `<div class="list">${items.slice(0, 12).map((item) => { const stats = item.stats || {}; return `<div class="work-item"><div class="work-row"><b>${escapeHtml(item.topic || '未命名作品')}</b><span>播放 ${fmtNumber(stats.plays)}</span><span>赞 ${fmtNumber(stats.likes)}</span><strong>藏 ${fmtNumber(stats.saves)}</strong><span>${escapeHtml(stats.publishedAt || '')}</span></div>${renderPublishedLinkControls(item)}</div>`; }).join('')}</div>` : `<div class="panel"><div class="empty-state"><span class="big-icon">▥</span><b>还没有作品数据</b><p>点“同步我的作品”，在内置浏览器里采集一次自己的主页。</p><button class="btn primary" data-action="open-self">同步我的作品</button></div></div>`}
   </div>`;
 }
 
@@ -2010,12 +2366,20 @@ function useTranscript(index) {
 
 function openCollectorGuide() {
   const modal = document.querySelector('#guide-modal');
-  if (modal) modal.classList.remove('hidden');
+  if (!modal) return;
+  guideReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => document.querySelector('#guide-close')?.focus());
 }
 
 function closeCollectorGuide() {
   const modal = document.querySelector('#guide-modal');
-  if (modal) modal.classList.add('hidden');
+  if (!modal || modal.classList.contains('hidden')) return;
+  modal.classList.add('hidden');
+  modal.setAttribute('aria-hidden', 'true');
+  if (guideReturnFocus?.focus) guideReturnFocus.focus();
+  guideReturnFocus = null;
 }
 
 function openCollectorResult(result) {
@@ -2062,6 +2426,7 @@ async function handleAction(action, target) {
   if (action === 'workflow-select-idea') { await runWorkflowAction({ action: 'select_idea', optionId: target?.dataset?.optionId || '' }); return; }
   if (action === 'workflow-confirm-transcript') { await runWorkflowAction({ action: 'confirm_transcript', text: String(document.querySelector('#workflow-transcript')?.value || ''), rewritePlan: true }); return; }
   if (action === 'workflow-confirm-manual-transcript') { await runWorkflowAction({ action: 'confirm_transcript', text: String(document.querySelector('#workflow-manual-transcript')?.value || ''), rewritePlan: true }); return; }
+  if (action === 'workflow-transcript-filter') { applyWorkflowTranscriptFilter(target?.dataset?.source || 'all'); return; }
   if (action === 'workflow-retry-transcript') { await runWorkflowAction({ action: 'retry_transcript' }); return; }
   if (action === 'workflow-switch-transcript-mode') { await runWorkflowAction({ action: 'switch_transcript_mode', mode: target?.dataset?.mode || 'auto' }); return; }
   if (action === 'workflow-restore-previous-transcript') { await runWorkflowAction({ action: 'restore_previous_transcript' }); return; }
@@ -2093,6 +2458,7 @@ async function handleAction(action, target) {
   if (action === 'production-create-hosted') { await createProductionHosted(); return; }
   if (action === 'production-save-talking') { await saveProductionTalking(); return; }
   if (action === 'production-save-plan') { await saveProductionPlan(); return; }
+  if (action === 'production-compliance-check') { await checkCurrentProductionCompliance(); return; }
   if (action === 'production-edit-plan') { editProductionPlan(); return; }
   if (action === 'production-submit-plan') { await submitProductionPlan(); return; }
   if (action === 'production-refresh-work') { await refreshProductionWork(); return; }
@@ -2109,6 +2475,10 @@ async function handleAction(action, target) {
   if (action === 'production-copy-package') { await copyProductionPackage(); return; }
   if (action === 'production-open-publish') { openProductionPublish(); return; }
   if (action === 'production-sync-after-publish') { await syncAfterPublish(); return; }
+  if (action === 'published-link-open') { state.reportLinkTarget = target?.dataset?.publishedId || null; render(); return; }
+  if (action === 'published-link-cancel') { state.reportLinkTarget = null; render(); return; }
+  if (action === 'published-link-confirm') { await linkPublishedWork(target?.dataset?.publishedId || ''); return; }
+  if (action === 'published-link-remove') { await unlinkPublishedWork(target?.dataset?.publishedId || ''); return; }
   if (action === 'generate-insight') { await generateInsight(); return; }
   if (action === 'insight-to-create') { useInsightForCreate(); return; }
   if (action === 'check-update') {
@@ -2132,6 +2502,32 @@ function bindEvents() {
   $('#refresh-page').addEventListener('click', async () => { await loadAll({ silent: false }); toast('已刷新', 'success'); });
   $('#guide-close')?.addEventListener('click', closeCollectorGuide);
   $('#guide-modal')?.addEventListener('click', (event) => { if (event.target === document.querySelector('#guide-modal')) closeCollectorGuide(); });
+  document.addEventListener('keydown', (event) => {
+    const modal = document.querySelector('#guide-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeCollectorGuide();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    const focusable = Array.from(modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+      .filter((node) => !node.disabled && node.offsetParent !== null);
+    if (!focusable.length) {
+      event.preventDefault();
+      document.querySelector('.modal-card')?.focus();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
 
   $('#view').addEventListener('click', (event) => {
     const choice = event.target.closest('[data-choice]');
@@ -2150,26 +2546,36 @@ function bindEvents() {
     if (event.target.dataset.productionField && state.production?.draft) {
       const key = event.target.dataset.productionField;
       state.production.draft[key] = key === 'duration' ? Number(event.target.value) : event.target.value;
+      invalidateProductionCompliance();
     }
     if (event.target.dataset.packageField && state.production?.packageForm) {
       state.production.packageForm[event.target.dataset.packageField] = event.target.value;
+      invalidateProductionCompliance();
     }
     if (event.target.dataset.shotField && state.production) {
       const index = String(event.target.dataset.shotIndex || '');
       state.production.shotEdits[index] = state.production.shotEdits[index] || {};
       state.production.shotEdits[index][event.target.dataset.shotField] = event.target.value;
+      invalidateProductionCompliance();
     }
+    if (event.target.id === 'production-talking-text') {
+      state.production.talkingTextDraft = event.target.value;
+      invalidateProductionCompliance();
+    }
+    if (event.target.id === 'workflow-transcript') state.workflowTranscriptDraft = event.target.value;
   });
 
   $('#view').addEventListener('change', async (event) => {
     if (event.target.dataset.productionField && state.production?.draft) {
       const productionKey = event.target.dataset.productionField;
       state.production.draft[productionKey] = productionKey === 'duration' ? Number(event.target.value) : event.target.value;
+      invalidateProductionCompliance();
       if (['imageAssetId', 'voiceId'].includes(productionKey)) renderCreateOnly();
       return;
     }
     if (event.target.dataset.packageField && state.production?.packageForm) {
       state.production.packageForm[event.target.dataset.packageField] = event.target.value;
+      invalidateProductionCompliance();
       return;
     }
     const key = event.target.dataset.setting;

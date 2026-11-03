@@ -1,8 +1,8 @@
 {
   "generatedForDate": "2026-10-27",
   "apiRoot": "apps/api/src",
-  "fileCount": 29,
-  "dependencyCount": 117,
+  "fileCount": 31,
+  "dependencyCount": 120,
   "missingCount": 0,
   "missing": [],
   "dependencies": [
@@ -183,6 +183,13 @@
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",
+      "specifier": "../services/complianceEngine.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/complianceEngine.js"
+    },
+    {
+      "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "../services/fileStorage.js",
       "kind": "relative",
       "exists": true,
@@ -246,6 +253,13 @@
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",
+      "specifier": "../services/junshiVisualTranscript.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/junshiVisualTranscript.js"
+    },
+    {
+      "importer": "apps/api/src/routes/junshiWorkbench.js",
       "specifier": "../services/junshiWorkbenchContent.js",
       "kind": "relative",
       "exists": true,
@@ -278,6 +292,13 @@
       "kind": "relative",
       "exists": true,
       "target": "apps/api/src/services/providerSecret.js"
+    },
+    {
+      "importer": "apps/api/src/routes/junshiWorkbench.js",
+      "specifier": "../services/transcriptMetrics.js",
+      "kind": "relative",
+      "exists": true,
+      "target": "apps/api/src/services/transcriptMetrics.js"
     },
     {
       "importer": "apps/api/src/routes/junshiWorkbench.js",

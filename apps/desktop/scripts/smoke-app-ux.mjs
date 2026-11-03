@@ -50,6 +50,7 @@ let plan = {
 };
 let work = null;
 let packageRow = null;
+let publishedLink = null;
 let workPollCount = 0;
 const directorScript = {
   title: '家长问得最多的不是价格',
@@ -68,6 +69,48 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(payload));
   };
+  if (url.pathname.endsWith('/compliance/check') && req.method === 'POST') {
+    const body = await readJson(req);
+    const content = String(body.content || '');
+    const blocked = /考试包过|押题|有偿补课/.test(content);
+    const risky = /(?:全网第一|效果第一|最好的课)/.test(content);
+    const level = blocked ? 'block' : risky ? 'fix' : 'ok';
+    return send({ data: {
+      length: content.length,
+      verdict: { level, text: blocked ? '高风险勿发：触碰资质红线' : risky ? '改完可发：处理下面标红的词' : '没发现问题，可以发' },
+      total: blocked || risky ? 1 : 0,
+      hits: risky ? [{ word: '全网第一', category: '广告法·最高级', severity: 'high', count: 1, replace: '行业前沿', note: '' }] : [],
+      whitelist: [],
+      redlines: blocked ? [{ field: '教育培训', trigger: '考试包过', note: '禁押题与有偿补课宣传', severity: 'high' }] : [],
+      risky: [],
+      rules: { name: '桌面回归规则包', updated: '2026-11-03', source: 'mock' },
+      pass: level === 'ok',
+    } });
+  }
+  if (url.pathname.endsWith('/metrics/transcripts') && req.method === 'GET') {
+    return send({ data: {
+      days: 7, extractions: 6, succeeded: 5, failed: 1, successRate: 83.3,
+      durationMs: { avg: 18200, p50: 15400, p95: 32600 },
+      asr: { attempted: 4, succeeded: 3, empty: 1, failed: 0, avgDurationMs: 12800, avgChars: 1640 },
+      visual: { attempted: 3, succeeded: 2, empty: 1, failed: 0, avgDurationMs: 7200, avgChars: 212, avgFrames: 12 },
+      confirmations: { total: 3, avgEditRatio: 0.086, editedRate: 66.7, avgOriginalChars: 920 },
+      failureReasons: [{ code: 'WORKBENCH_VISUAL_EMPTY', message: '画面中没有可读文字', count: 1 }],
+      byMode: [{ mode: 'auto', total: 3, succeeded: 3, failed: 0 }, { mode: 'both', total: 3, succeeded: 2, failed: 1 }],
+      recent: [{ id: 'm-1', eventType: 'extraction', mode: 'auto', status: 'succeeded', resultSource: 'visual', durationMs: 15200, resultChars: 215, resultSegments: 8, createdAt: new Date().toISOString() }],
+    } });
+  }
+  if (url.pathname.endsWith('/published-works/pub-1/link') && req.method === 'POST') {
+    const body = await readJson(req);
+    publishedLink = {
+      id: 'jwplink-1', publishedWorkId: 'pub-1', awemeId: '7300000000000000001', workId: 'w-1', planId: 'pl-1', packageId: body.packageId || 'pkg-link',
+      workTitle: '家长问得最多的不是价格', packageTitle: '家长先别急着报班', planTitle: '先别急着报班', hook: '家长第一句问多少钱，不代表只关心价格。', objective: '建立信任', matchSource: 'manual', linkedAt: new Date().toISOString(),
+    };
+    return send({ data: { link: publishedLink } });
+  }
+  if (url.pathname.endsWith('/published-works/pub-1/link') && req.method === 'DELETE') {
+    publishedLink = null;
+    return send({ data: { unlinked: true } });
+  }
   if (url.pathname.endsWith('/plans') && req.method === 'GET') {
     return send({ data: { items: [plan] } });
   }
@@ -196,6 +239,7 @@ const server = http.createServer(async (req, res) => {
           transcriptSource: 'visual',
           visualMeta: { frameCount: 12, frameStrategy: 'hybrid', sheetCount: 2 },
           transcript: 'Hello，我是 DeepSeek V4.1-Flash。代码可以变成任何画面。',
+          transcriptSegments: [{ start: 0, end: 6, text: 'Hello，我是 DeepSeek V4.1-Flash。', source: 'visual', frameCount: 12, frameStrategy: 'hybrid', sheetCount: 2 }],
           extractError: '',
         },
       };
@@ -210,14 +254,19 @@ const server = http.createServer(async (req, res) => {
         state: {
           ...workflowRow.state,
           transcriptMode: body.mode,
-          transcriptSource: body.mode === 'speech' ? 'speech' : 'visual',
-          transcript: body.mode === 'speech' ? '切换到口播后的新稿。' : '切换来源后的画面文字稿。',
+          transcriptSource: body.mode === 'speech' ? 'speech' : body.mode === 'both' ? 'mixed' : 'visual',
+          transcript: body.mode === 'speech' ? '切换到口播后的新稿。' : body.mode === 'both' ? '【口播】\n切换后的口播片段。\n\n【画面文字】\n切换后的画面文字片段。' : '切换来源后的画面文字稿。',
+          transcriptSegments: body.mode === 'speech'
+            ? [{ start: 0, end: 4, text: '切换后的口播片段。', source: 'speech' }]
+            : body.mode === 'both'
+              ? [{ start: 0, end: 4, text: '切换后的口播片段。', source: 'speech' }, { start: 4, end: 8, text: '切换后的画面文字片段。', source: 'visual', frameCount: 12, frameStrategy: 'hybrid', sheetCount: 2 }]
+              : [{ start: 0, end: 4, text: '切换来源后的画面文字稿。', source: 'visual', frameCount: 12, frameStrategy: 'hybrid', sheetCount: 2 }],
           previousTranscript: {
             transcriptId: workflowRow.state.transcriptId || 'jwts-1',
             text: workflowRow.state.transcript || '上一稿',
             transcriptSource: workflowRow.state.transcriptSource || 'visual',
             transcriptMode: workflowRow.state.transcriptMode || 'auto',
-            transcriptSegments: [],
+            transcriptSegments: workflowRow.state.transcriptSegments || [],
           },
           extractError: '',
         },
@@ -236,6 +285,7 @@ const server = http.createServer(async (req, res) => {
           transcriptMode: previous.transcriptMode || 'visual',
           transcriptSource: previous.transcriptSource || 'visual',
           transcript: previous.text || '恢复后的上一稿。',
+          transcriptSegments: previous.transcriptSegments || [],
           previousTranscript: null,
           extractError: '',
         },
@@ -384,7 +434,14 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname.endsWith('/reviews/insights')) return send({ data: { insight, sampleCount: 1 } });
   if (url.pathname.endsWith('/bootstrap')) return send({ data: { stats: { jobs: 1 } } });
   if (url.pathname.endsWith('/refs')) return send({ data: { items: [] } });
-  if (url.pathname.endsWith('/reports')) return send({ data: { items: [{ id: 'work-1', topic: '家长先别急着报班', stats: { plays: 3200, likes: 61, saves: 18, publishedAt: '2026-10-20' } }], ownCount: 1, pendingCount: 0 } });
+  if (url.pathname.endsWith('/reports')) return send({ data: {
+    items: [{ id: 'pub-1', origin: 'douyin_assistant', topic: '家长先别急着报班', style: '抖音已发布', stats: { plays: 3200, likes: 61, saves: 18, publishedAt: '2026-10-20' }, link: publishedLink }],
+    ownCount: 1,
+    screenshotCount: 0,
+    pendingCount: 0,
+    counts: { linked: publishedLink ? 1 : 0 },
+    linkable: publishedLink ? [] : [{ packageId: 'pkg-link', packageTitle: '家长先别急着报班', workId: 'w-1', workTitle: '家长问得最多的不是价格', planId: 'pl-1', planTitle: '先别急着报班', hook: '家长第一句问多少钱，不代表只关心价格。', objective: '建立信任', createdAt: new Date().toISOString() }],
+  } });
   if (url.pathname.endsWith('/jobs') && req.method === 'GET') return send({ data: { items: mockJobs, total: mockJobs.length, kinds: [{ kind: '视频渲染', count: 1 }], statuses: [{ status: 'failed', count: mockJobs.filter((item) => item.status === 'failed').length }] } });
   if (/\/jobs\/[^/]+\/retry$/.test(url.pathname) && req.method === 'POST') { mockJobs = mockJobs.map((item) => ({ ...item, status: 'succeeded', error: '' })); return send({ data: { ok: true, message: '已重新提交任务' } }); }
   if (url.pathname.endsWith('/transcripts')) return send({ data: { items: [{ id: 'transcript-1', source: 'douyin', status: 'succeeded', title: '同行参考作品一', nickname: '橘子老师', text: '先问孩子卡在哪，再谈课程。', segmentCount: 2 }] } });
@@ -450,7 +507,7 @@ try {
   await page.waitForSelector('.brain-card', { timeout: 5000 });
   await page.locator('[data-action="brain-detail"]').first().click();
   const brainPanel = await page.evaluate(() => ({ cards: document.querySelectorAll('.brain-card').length, detail: document.querySelector('.brain-detail')?.innerText || '' }));
-  if (brainPanel.cards < 1 || !brainPanel.detail.includes('内容结构')) throw new Error(`brain panel incomplete: ${JSON.stringify(brainPanel)}`);
+  if (brainPanel.cards < 1 || !brainPanel.detail.includes('内容结构') || !brainPanel.detail.includes('账号定位') || brainPanel.detail.includes('positioning')) throw new Error(`brain panel incomplete: ${JSON.stringify(brainPanel)}`);
   if (process.env.JUNSHI_CONTEXT_SCREENSHOT) await page.screenshot({ path: process.env.JUNSHI_CONTEXT_SCREENSHOT, fullPage: false });
   await page.locator('[data-action="brain-composer-toggle"]').click();
   await page.waitForSelector('#brain-name', { timeout: 5000 });
@@ -544,6 +601,21 @@ try {
   if (transcriptModeSwitchCount !== 4 || !switchedTranscript.includes('口播') || !restoredTranscript.includes('DeepSeek')) {
     throw new Error(`transcript switch/restore failed: ${JSON.stringify({ transcriptModeSwitchCount, switchedTranscript, restoredTranscript })}`);
   }
+  await page.locator('[data-action="workflow-switch-transcript-mode"][data-mode="both"]').click();
+  await page.waitForFunction(() => document.querySelector('[data-action="workflow-switch-transcript-mode"][data-mode="both"]')?.classList.contains('active'), null, { timeout: 10000 });
+  await page.waitForSelector('.transcript-segment-review summary', { timeout: 5000 });
+  await page.locator('.transcript-segment-review summary').click();
+  const segmentCount = await page.locator('.transcript-segment').count();
+  await page.locator('[data-action="workflow-transcript-filter"][data-source="speech"]').click();
+  const speechOnlyTranscript = await page.locator('#workflow-transcript').inputValue();
+  await page.locator('[data-action="workflow-transcript-filter"][data-source="visual"]').click();
+  const visualOnlyTranscript = await page.locator('#workflow-transcript').inputValue();
+  await page.locator('[data-action="workflow-transcript-filter"][data-source="all"]').click();
+  const mergedTranscript = await page.locator('#workflow-transcript').inputValue();
+  const segmentReview = { segmentCount, speechOnlyTranscript, visualOnlyTranscript, mergedTranscript };
+  if (segmentCount !== 2 || !speechOnlyTranscript.includes('口播片段') || speechOnlyTranscript.includes('画面文字片段') || !visualOnlyTranscript.includes('画面文字片段') || !mergedTranscript.includes('【口播】') || !mergedTranscript.includes('【画面文字】')) {
+    throw new Error(`transcript segment review failed: ${JSON.stringify(segmentReview)}`);
+  }
   await page.fill('#workflow-transcript', 'Hello，我是 DeepSeek V4.1-Flash。代码可以变成任何画面。');
   await page.locator('[data-action="workflow-confirm-transcript"]').click();
   await page.waitForSelector('[data-action="workflow-select-plan"]', { timeout: 10000 });
@@ -610,6 +682,16 @@ try {
   if (process.env.JUNSHI_VIDEO_MODES_SCREENSHOT) await page.screenshot({ path: process.env.JUNSHI_VIDEO_MODES_SCREENSHOT, fullPage: false });
   await page.locator('[data-action="production-create-talking"]').click();
   await page.waitForSelector('#production-talking-text', { timeout: 5000 });
+  const originalTalkingText = await page.locator('#production-talking-text').inputValue();
+  await page.fill('#production-talking-text', '考试包过，绝对有效。');
+  await page.evaluate(() => document.querySelector('[data-action="production-compliance-check"]')?.click());
+  await page.waitForFunction(() => document.querySelector('.compliance-panel')?.classList.contains('block'), null, { timeout: 5000 });
+  const talkingDraftCompliance = await page.locator('.compliance-panel').innerText();
+  const talkingDraftPreserved = await page.locator('#production-talking-text').inputValue();
+  if (!talkingDraftCompliance.includes('高风险') || !talkingDraftPreserved.includes('考试包过')) {
+    throw new Error(`talking draft compliance failed: ${JSON.stringify({ talkingDraftCompliance, talkingDraftPreserved })}`);
+  }
+  await page.fill('#production-talking-text', originalTalkingText);
   await page.locator('[data-action="production-edit-plan"]').click();
 
   await page.locator('[data-action="production-mode"][data-mode="hosted"]').click();
@@ -627,6 +709,28 @@ try {
   if (!draftState.body.includes('编导稿') || !draftState.body.includes('发布包')) {
     throw new Error(`production draft is incomplete: ${JSON.stringify(draftState)}`);
   }
+  const scriptField = page.locator('[data-production-field="script"]');
+  const originalScript = await scriptField.inputValue();
+  await scriptField.fill('全网第一的课程，绝对有效。');
+  await page.evaluate(() => document.querySelector('[data-action="production-compliance-check"]')?.click());
+  await page.waitForFunction(() => document.querySelector('.compliance-panel')?.classList.contains('block'), null, { timeout: 5000 });
+  const blockedCompliance = await page.locator('.compliance-panel').innerText();
+  await page.locator('[data-action="production-save-plan"]').click();
+  await page.waitForFunction(() => document.querySelector('#toast')?.textContent?.includes('高风险内容'), null, { timeout: 5000 });
+  const blockedSave = await page.locator('#toast').innerText();
+  if (await page.locator('#production-plan-confirm').count()) throw new Error('high-risk copy was allowed to save a production plan');
+  await scriptField.fill(originalScript);
+  await page.evaluate(() => document.querySelector('[data-action="production-compliance-check"]')?.click());
+  await page.waitForFunction(() => document.querySelector('.compliance-panel')?.classList.contains('ok'), null, { timeout: 5000 });
+  const safeCompliance = await page.locator('.compliance-panel').innerText();
+  const complianceDetailsOpen = await page.locator('.compliance-details').evaluate((node) => node.open);
+  const productionFooterPosition = await page.locator('.production-footer').evaluate((node) => getComputedStyle(node).position);
+  if (!blockedCompliance.includes('高风险') || !safeCompliance.includes('通过') || !blockedSave.includes('高风险')) {
+    throw new Error(`compliance guard check failed: ${JSON.stringify({ blockedCompliance, safeCompliance, blockedSave })}`);
+  }
+  if (complianceDetailsOpen || productionFooterPosition !== 'sticky') {
+    throw new Error(`production UI polish failed: ${JSON.stringify({ complianceDetailsOpen, productionFooterPosition })}`);
+  }
   if (process.env.JUNSHI_PRODUCTION_SCREENSHOT) await page.screenshot({ path: process.env.JUNSHI_PRODUCTION_SCREENSHOT, fullPage: false });
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setContentSize(1100, 720));
   await page.waitForTimeout(200);
@@ -643,6 +747,14 @@ try {
   await page.waitForSelector('[data-shot-field="voiceover"]', { timeout: 10000 });
   const shotCount = await page.locator('.production-shot').count();
   if (shotCount < 2) throw new Error(`expected storyboard shots, got ${shotCount}`);
+  await page.locator('[data-shot-field="voiceover"]').first().fill('考试包过，绝对有效。');
+  await page.evaluate(() => document.querySelector('[data-action="production-compliance-check"]')?.click());
+  await page.waitForFunction(() => document.querySelector('.compliance-panel')?.classList.contains('block'), null, { timeout: 5000 });
+  const storyboardDraftCompliance = await page.locator('.compliance-panel').innerText();
+  const storyboardDraftPreserved = await page.locator('[data-shot-field="voiceover"]').first().inputValue();
+  if (!storyboardDraftCompliance.includes('高风险') || !storyboardDraftPreserved.includes('考试包过')) {
+    throw new Error(`storyboard draft compliance failed: ${JSON.stringify({ storyboardDraftCompliance, storyboardDraftPreserved })}`);
+  }
   await page.locator('[data-shot-field="voiceover"]').first().fill('这是人工修改后的开场口播。');
   await page.locator('[data-action="production-save-script"]').click();
   await page.waitForSelector('[data-action="production-save-script"]:not([disabled])', { timeout: 5000 });
@@ -670,6 +782,18 @@ try {
 
   await page.locator('[data-page="reports"]').click();
   await page.waitForSelector('[data-action="generate-insight"]:not([disabled])', { timeout: 5000 });
+  await page.locator('[data-action="published-link-open"]').click();
+  await page.waitForSelector('#published-link-package', { timeout: 5000 });
+  await page.selectOption('#published-link-package', 'pkg-link');
+  await page.locator('[data-action="published-link-confirm"]').click();
+  await page.waitForSelector('[data-action="published-link-remove"]', { timeout: 5000 });
+  const linkedReport = await page.locator('.published-link-state.linked').innerText();
+  await page.locator('[data-action="published-link-remove"]').click();
+  await page.waitForSelector('[data-action="published-link-open"]', { timeout: 5000 });
+  const unlinkedReport = await page.locator('.published-link-state').innerText();
+  if (!linkedReport.includes('先别急着报班') || !unlinkedReport.includes('未关联')) {
+    throw new Error(`published link loop failed: ${JSON.stringify({ linkedReport, unlinkedReport })}`);
+  }
   await page.locator('[data-action="generate-insight"]').first().click();
   await page.waitForSelector('[data-action="insight-to-create"]', { timeout: 10000 });
   await page.locator('[data-action="insight-to-create"]').click();
@@ -684,6 +808,11 @@ try {
 
   await page.locator('[data-action="context-open"][data-context="jobs"]').click();
   await page.waitForSelector('.job-center-card', { timeout: 5000 });
+  await page.waitForSelector('.transcript-metrics', { timeout: 5000 });
+  const transcriptMetrics = await page.locator('.transcript-metrics').innerText();
+  if (!transcriptMetrics.includes('成功率') || !transcriptMetrics.includes('人工修改率')) {
+    throw new Error(`transcript metrics panel incomplete: ${transcriptMetrics.slice(0, 300)}`);
+  }
   const jobCount = await page.locator('.job-center-card').count();
   await page.locator('[data-action="job-retry"]').first().click();
   await page.waitForFunction(() => !document.querySelector('[data-action="job-retry"]'), null, { timeout: 5000 });
@@ -705,7 +834,18 @@ try {
   const cycleIdea = await page.locator('#create-idea').inputValue();
   if (!cycleIdea.includes('家长为什么先问价格')) throw new Error(`cycle idea was not carried into create: ${cycleIdea}`);
 
-  console.log(JSON.stringify({ name: 'junshi-desktop-app-ux-smoke', pass: true, layout, productionDraft: draftState, shotCount, storyboardEdited: true, publishStep: publishState.currentStep, responsive, workflow: { ideaCount: workflowIdeaCount, copyCount: workflowCopyCount, streamingCopyDisabled, productionTitle }, viral: { planCount: viralPlanCount, copyCount: viralCopyCount, planSummary: true, transcriptModeCount, transcriptModeActive: String(transcriptModeActive).includes('active'), manualFallback: viralFallback, visualFallback: viralVisualFallback, transcriptModeSwitchCount, switchedTranscript, restoredTranscript, planCountAfterVisual: viralManualPlanCount }, videoModes: { avatarOptions, hostedDraft: true }, context: { brainCards: brainPanel.cards, brainCardsAfterCreate, memoryCount, assetCount, jobCount, cycleConfirm: true }, insightFlow: true }));
+  await page.locator('[data-page="peers"]').click();
+  await page.waitForSelector('[data-action="collector-help"]', { timeout: 5000 });
+  const helpButton = page.locator('[data-action="collector-help"]').first();
+  await helpButton.click();
+  await page.waitForFunction(() => document.querySelector('#guide-modal')?.getAttribute('aria-hidden') === 'false' && document.activeElement?.id === 'guide-close', null, { timeout: 5000 });
+  const modalFocusOpen = await page.evaluate(() => document.activeElement?.id === 'guide-close');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => document.querySelector('#guide-modal')?.classList.contains('hidden'), null, { timeout: 5000 });
+  const modalFocusClosed = await page.evaluate(() => document.activeElement?.getAttribute('data-action') === 'collector-help');
+  if (!modalFocusOpen || !modalFocusClosed) throw new Error(`modal focus handling failed: ${JSON.stringify({ modalFocusOpen, modalFocusClosed })}`);
+
+  console.log(JSON.stringify({ name: 'junshi-desktop-app-ux-smoke', pass: true, layout, productionDraft: draftState, compliance: { blocked: blockedCompliance.includes('高风险'), safe: safeCompliance.includes('通过'), talkingDraft: talkingDraftCompliance.includes('高风险'), storyboardDraft: storyboardDraftCompliance.includes('高风险') }, publishedLink: { linked: linkedReport.includes('先别急着报班'), unlinked: unlinkedReport.includes('未关联') }, transcriptMetrics: transcriptMetrics.includes('人工修改率'), uiPolish: { complianceDetailsOpen, productionFooterPosition, modalFocusOpen, modalFocusClosed }, shotCount, storyboardEdited: true, publishStep: publishState.currentStep, responsive, workflow: { ideaCount: workflowIdeaCount, copyCount: workflowCopyCount, streamingCopyDisabled, productionTitle }, viral: { planCount: viralPlanCount, copyCount: viralCopyCount, planSummary: true, transcriptModeCount, transcriptModeActive: String(transcriptModeActive).includes('active'), manualFallback: viralFallback, visualFallback: viralVisualFallback, transcriptModeSwitchCount, switchedTranscript, restoredTranscript, segmentReview, planCountAfterVisual: viralManualPlanCount }, videoModes: { avatarOptions, hostedDraft: true }, context: { brainCards: brainPanel.cards, brainCardsAfterCreate, memoryCount, assetCount, jobCount, cycleConfirm: true }, insightFlow: true }));
 } finally {
   await app.close();
   await new Promise((resolve) => server.close(resolve));

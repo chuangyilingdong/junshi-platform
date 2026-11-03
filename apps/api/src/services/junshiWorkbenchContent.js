@@ -993,7 +993,11 @@ export function buildReviewsInsightPrompt({ profile, orgProfile, published }) {
   const rows = (published || []).map((item, index) => {
     const stats = item.stats || {};
     const pick = (key) => (Number.isFinite(Number(stats[key])) ? Number(stats[key]) : '—');
-    return `${index + 1}. 主题：${item.topic}（风格：${item.style || '—'}；发布：${stats.publishedAt || '—'}）→ 播放 ${pick('plays')}，赞 ${pick('likes')}，评 ${pick('comments')}，转 ${pick('shares')}，藏 ${pick('saves')}`;
+    const link = item.link || item.strategy || null;
+    const strategy = link
+      ? `；生成方案：${link.planTitle || link.packageTitle || '未命名'}；钩子：${String(link.hook || '—').slice(0, 120)}；目标：${String(link.objective || '—').slice(0, 120)}`
+      : '；生成方案：未关联';
+    return `${index + 1}. 主题：${item.topic}（风格：${item.style || '—'}；发布：${stats.publishedAt || '—'}${strategy}）→ 播放 ${pick('plays')}，赞 ${pick('likes')}，评 ${pick('comments')}，转 ${pick('shares')}，藏 ${pick('saves')}`;
   }).join('\n');
   return `你是内容数据分析师。基于这家机构自己回填的发布数据，做一次复盘：哪些内容跑得好、为什么、下一周期怎么调。
 
@@ -1001,7 +1005,7 @@ export function buildReviewsInsightPrompt({ profile, orgProfile, published }) {
 ${orgProfile || '未填写'}
 【内容账号档案】
 ${workbenchProfileBlock(profile)}
-【已回填的发布数据（${(published || []).length} 条）】
+【已回填的发布数据（${(published || []).length} 条；已关联生成方案 ${(published || []).filter((item) => item.link || item.strategy).length} 条）】
 ${rows}
 
 输出 Markdown（不要代码块，直接正文）：

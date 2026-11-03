@@ -1,5 +1,10 @@
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { sendAlertWebhook } from './lib/alert-webhook.mjs';
+import { evaluateTranscriptHealth } from './lib/transcript-health.mjs';
+import { mysqlConfigFromEnv } from '../packages/platform-core/src/mysql-config.js';
+
+const requireFromCore = createRequire(new URL('../packages/platform-core/package.json', import.meta.url));
 
 const checks = [];
 const failures = [];
@@ -29,6 +34,48 @@ function serviceCheck(name) {
   } catch (error) {
     checks.push({ name: `service:${name}`, ok: false, status: 'inactive' });
     failures.push(`service:${name}: inactive`);
+  }
+}
+
+function envNumber(name, fallback) {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+async function transcriptQualityCheck() {
+  if (String(process.env.DB_DRIVER || '').trim().toLowerCase() !== 'mysql') {
+    checks.push({ name: 'transcript:quality', ok: true, skipped: true, reason: 'DB_DRIVER is not mysql' });
+    return;
+  }
+  const config = mysqlConfigFromEnv();
+  let connection = null;
+  try {
+    const mysql = requireFromCore('mysql2/promise');
+    connection = await mysql.createConnection(config);
+    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const [rows] = await connection.execute(
+      'SELECT status, duration_ms, asr_status, visual_status, error_code FROM junshi_workbench_transcript_metrics WHERE event_type=? AND created_at>=? ORDER BY created_at DESC LIMIT 5000',
+      ['extraction', since],
+    );
+    const evaluation = evaluateTranscriptHealth(rows, {
+      minSamples: envNumber('JUNSHI_TRANSCRIPT_ALERT_MIN_SAMPLES', 5),
+      successRateThreshold: envNumber('JUNSHI_TRANSCRIPT_ALERT_SUCCESS_RATE', 70),
+      p95ThresholdMs: envNumber('JUNSHI_TRANSCRIPT_ALERT_P95_MS', 180000),
+    });
+    checks.push({ name: 'transcript:quality', ...evaluation });
+    if (!evaluation.ok) failures.push(`transcript:quality: ${evaluation.failures.join('；')}`);
+  } catch (error) {
+    if (error?.code === 'ER_NO_SUCH_TABLE') {
+      checks.push({ name: 'transcript:quality', ok: true, skipped: true, reason: 'metrics table not deployed' });
+      return;
+    }
+    const password = String(config.password || '');
+    const message = String(error?.message || error);
+    const detail = (password ? message.replaceAll(password, '[redacted]') : message).slice(0, 300);
+    checks.push({ name: 'transcript:quality', ok: false, error: detail });
+    failures.push(`transcript:quality: ${detail}`);
+  } finally {
+    await connection?.end().catch(() => {});
   }
 }
 
@@ -64,6 +111,7 @@ if (process.argv.includes('--test-webhook')) {
   serviceCheck('junshi-api');
   serviceCheck('nginx');
   serviceCheck('learning-platform-production');
+  await transcriptQualityCheck();
 
   const result = {
     ok: failures.length === 0,

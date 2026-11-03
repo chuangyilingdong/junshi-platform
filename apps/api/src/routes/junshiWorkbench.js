@@ -33,6 +33,8 @@ import {
   transcriptQualityIssue,
 } from '../services/junshiDouyin.js';
 import { buildVisualTranscriptPrompt, selectSceneSampleTimes, visualFrameStrategy } from '../services/junshiVisualTranscript.js';
+import { auditMaterial } from '../services/complianceEngine.js';
+import { summarizeTranscriptMetrics, textEditRatio } from '../services/transcriptMetrics.js';
 import {
   seedanceChannelConfig,
   uploadToSeedance,
@@ -365,6 +367,71 @@ async function jobDone(job, status, detail, error = '') {
   const failure = status === 'failed' ? String(error || detail || '').slice(0, 2000) : '';
   await aq('UPDATE junshi_workbench_jobs SET status=?, detail=?, error=?, updated_at=? WHERE id=?',
     [status, String(detail || '').slice(0, 2000), failure, nowIso(), job.id]);
+}
+
+async function insertTranscriptMetric(owner, data = {}) {
+  const at = nowIso();
+  const row = {
+    id: id('jwtm'),
+    owner_key: owner.key,
+    org_id: owner.orgId || null,
+    account_id: text(data.accountId) || 'default',
+    transcript_id: text(data.transcriptId) || null,
+    job_id: text(data.jobId).slice(0, 64),
+    event_type: text(data.eventType) || 'extraction',
+    mode: normalizeTranscriptMode(data.mode),
+    status: text(data.status).slice(0, 24),
+    input_source: text(data.inputSource).slice(0, 16),
+    result_source: text(data.resultSource).slice(0, 16),
+    duration_ms: Math.max(0, Math.round(Number(data.durationMs) || 0)),
+    asr_status: text(data.asrStatus) || 'skipped',
+    asr_duration_ms: Math.max(0, Math.round(Number(data.asrDurationMs) || 0)),
+    asr_chars: Math.max(0, Math.round(Number(data.asrChars) || 0)),
+    asr_segments: Math.max(0, Math.round(Number(data.asrSegments) || 0)),
+    asr_language: text(data.asrLanguage).slice(0, 32),
+    asr_chunks: Math.max(0, Math.round(Number(data.asrChunks) || 0)),
+    asr_error_code: text(data.asrErrorCode).slice(0, 80),
+    asr_error: text(data.asrError).slice(0, 1000),
+    visual_status: text(data.visualStatus) || 'skipped',
+    visual_duration_ms: Math.max(0, Math.round(Number(data.visualDurationMs) || 0)),
+    visual_chars: Math.max(0, Math.round(Number(data.visualChars) || 0)),
+    visual_frames: Math.max(0, Math.round(Number(data.visualFrames) || 0)),
+    visual_sheets: Math.max(0, Math.round(Number(data.visualSheets) || 0)),
+    visual_strategy: text(data.visualStrategy).slice(0, 24),
+    visual_error_code: text(data.visualErrorCode).slice(0, 80),
+    visual_error: text(data.visualError).slice(0, 1000),
+    result_chars: Math.max(0, Math.round(Number(data.resultChars) || 0)),
+    result_segments: Math.max(0, Math.round(Number(data.resultSegments) || 0)),
+    video_duration_seconds: Math.max(0, Number(data.videoDurationSeconds) || 0),
+    original_chars: Math.max(0, Math.round(Number(data.originalChars) || 0)),
+    edited_chars: Math.max(0, Math.round(Number(data.editedChars) || 0)),
+    edit_ratio: Math.max(0, Math.min(1, Number(data.editRatio) || 0)),
+    edit_capped: data.editCapped ? 1 : 0,
+    error_code: text(data.errorCode).slice(0, 80),
+    error: text(data.error).slice(0, 1000),
+    created_at: text(data.createdAt) || at,
+  };
+  const columns = Object.keys(row);
+  await aq(`INSERT INTO junshi_workbench_transcript_metrics (${columns.join(',')}) VALUES (${columns.map(() => '?').join(',')})`, columns.map((column) => row[column]));
+}
+
+async function recordTranscriptConfirmation(owner, data = {}) {
+  const edit = textEditRatio(data.originalText, data.editedText);
+  await insertTranscriptMetric(owner, {
+    accountId: data.accountId,
+    transcriptId: data.transcriptId,
+    jobId: data.jobId,
+    eventType: 'confirmation',
+    mode: data.mode,
+    status: 'confirmed',
+    inputSource: data.inputSource,
+    resultSource: data.resultSource,
+    originalChars: edit.originalChars,
+    editedChars: edit.editedChars,
+    editRatio: edit.editRatio,
+    editCapped: edit.editCapped,
+  });
+  return edit;
 }
 
 const JOB_ENTITY_LABELS = {
@@ -2754,14 +2821,27 @@ async function startTranscription(owner, { assetRow, source, title, sourceUrl, n
 
 /** 转写执行体（首次与失败重试共用）：按任务 payload 里的 transcriptMode 执行。 */
 async function runTranscriptionPipeline(owner, transcriptId, job) {
+  const metricStartedAt = Date.now();
+  let transcript = null;
+  let mode = 'auto';
+  const metric = {
+    accountId: 'default', transcriptId, jobId: job.id, eventType: 'extraction', status: 'failed', mode,
+    inputSource: '', resultSource: '', durationMs: 0,
+    asrStatus: 'skipped', asrDurationMs: 0, asrChars: 0, asrSegments: 0, asrLanguage: '', asrChunks: 0, asrErrorCode: '', asrError: '',
+    visualStatus: 'skipped', visualDurationMs: 0, visualChars: 0, visualFrames: 0, visualSheets: 0, visualStrategy: '', visualErrorCode: '', visualError: '',
+    resultChars: 0, resultSegments: 0, videoDurationSeconds: 0, errorCode: '', error: '',
+  };
   try {
-    const transcript = await arow('SELECT * FROM junshi_workbench_transcripts WHERE id=? AND owner_key=?', [transcriptId, owner.key]);
+    transcript = await arow('SELECT * FROM junshi_workbench_transcripts WHERE id=? AND owner_key=?', [transcriptId, owner.key]);
     if (!transcript) throw new Error('转写档案不存在或已被删除');
+    metric.accountId = transcript.account_id || 'default';
+    metric.inputSource = transcript.source || '';
     const assetRow = transcript.asset_id
       ? await arow('SELECT * FROM junshi_workbench_assets WHERE id=? AND owner_key=?', [transcript.asset_id, owner.key])
       : null;
     if (!assetRow) throw new Error('原始素材已被删除，无法转写');
-    const mode = normalizeTranscriptMode(jobPayload(job).transcriptMode);
+    mode = normalizeTranscriptMode(jobPayload(job).transcriptMode);
+    metric.mode = mode;
     await aq("UPDATE junshi_workbench_transcripts SET status='running', error='', text='', segments='[]', duration_seconds=0, updated_at=? WHERE id=? AND owner_key=?", [nowIso(), transcriptId, owner.key]);
     const buffer = await assetBytes(assetRow);
     let speech = null;
@@ -2770,27 +2850,54 @@ async function runTranscriptionPipeline(owner, transcriptId, job) {
     let visualError = null;
 
     if (['auto', 'speech', 'both'].includes(mode)) {
+      const started = Date.now();
       try {
         const policy = await getAiProviderPolicy();
         const asr = await seedanceAsrConfig(policy?.channels);
         if (!asr) throw Object.assign(new Error('转写渠道未配置（需要 seedance.nz 渠道 Key 或 JUNSHI_ASR_ENDPOINT/KEY）'), { code: 'WORKBENCH_ASR_NOT_CONFIGURED' });
         speech = await transcribeMediaReliable({ endpoint: asr.endpoint, apiKey: asr.apiKey, buffer, fileName: assetRow.file_name || `${transcriptId}.mp4`, mimeType: assetRow.mime_type || 'video/mp4' });
+        metric.asrStatus = speech?.text?.trim() ? 'succeeded' : 'empty';
+        metric.asrChars = String(speech?.text || '').length;
+        metric.asrSegments = Array.isArray(speech?.segments) ? speech.segments.length : 0;
+        metric.asrLanguage = String(speech?.language || '').slice(0, 32);
+        metric.asrChunks = Number(speech?.chunkCount) || 0;
       } catch (error) {
         speechError = error;
+        metric.asrStatus = 'failed';
+        metric.asrErrorCode = String(error?.code || 'WORKBENCH_ASR_FAILED').slice(0, 80);
+        metric.asrError = String(error?.message || error).slice(0, 1000);
+      } finally {
+        metric.asrDurationMs = Date.now() - started;
       }
     }
 
     const needsVisual = mode === 'visual' || mode === 'both' || (mode === 'auto' && !speech?.text?.trim());
     if (needsVisual) {
+      const started = Date.now();
       try {
         visual = await extractVisualTextFromAsset(assetRow, buffer);
+        metric.visualStatus = visual?.text?.trim() ? 'succeeded' : 'empty';
+        metric.visualChars = String(visual?.text || '').length;
+        metric.visualFrames = Number(visual?.frameCount) || 0;
+        metric.visualSheets = Number(visual?.sheetCount) || 0;
+        metric.visualStrategy = String(visual?.frameStrategy || '').slice(0, 24);
       } catch (error) {
         visualError = error;
+        metric.visualStatus = 'failed';
+        metric.visualErrorCode = String(error?.code || 'WORKBENCH_VISUAL_FAILED').slice(0, 80);
+        metric.visualError = String(error?.message || error).slice(0, 1000);
+      } finally {
+        metric.visualDurationMs = Date.now() - started;
       }
     }
 
     const combined = composeTranscriptResult(speech, visual);
     if (combined.text) {
+      metric.status = 'succeeded';
+      metric.resultSource = combined.source || '';
+      metric.resultChars = combined.text.length;
+      metric.resultSegments = combined.segments.length;
+      metric.videoDurationSeconds = Number(combined.duration) || 0;
       await aq('UPDATE junshi_workbench_transcripts SET status=?, text=?, segments=?, duration_seconds=?, error="", updated_at=? WHERE id=?',
         ['succeeded', combined.text.slice(0, 100000), JSON.stringify(combined.segments.slice(0, 2000)), Number(combined.duration) || 0, nowIso(), transcriptId]);
       const sourceLabel = combined.source === 'mixed' ? '口播 + 画面文字' : combined.source === 'visual' ? '画面文字' : '口播';
@@ -2811,9 +2918,15 @@ async function runTranscriptionPipeline(owner, transcriptId, job) {
     throw Object.assign(new Error(detail ? `${modeLabel}没有拿到可用文案：${detail.slice(0, 800)}` : '没有识别到清晰口播，画面中也没有可读文字。请手动粘贴文案，或换一条更清楚的视频。'), { code: 'WORKBENCH_TRANSCRIPT_EMPTY' });
   } catch (error) {
     const message = String(error?.message || error).slice(0, 1000);
+    metric.status = 'failed';
+    metric.errorCode = String(error?.code || 'WORKBENCH_TRANSCRIPT_FAILED').slice(0, 80);
+    metric.error = message;
     await aq('UPDATE junshi_workbench_transcripts SET status=?, error=?, updated_at=? WHERE id=?',
       ['failed', message, nowIso(), transcriptId]).catch(() => {});
     await jobDone(job, 'failed', message).catch(() => {});
+  } finally {
+    metric.durationMs = Date.now() - metricStartedAt;
+    await insertTranscriptMetric(owner, metric).catch(() => {});
   }
 }
 /* ───────────── 十二期 · 抖音主页读取（官方接口 → 浏览器旁路 → 明确引导） ───────────── */
@@ -3013,6 +3126,25 @@ function ownWorkOut(row) {
   };
 }
 
+function publishedLinkOut(row, packageRow = null, workRow = null, planRow = null) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    publishedWorkId: row.published_work_id || '',
+    awemeId: row.aweme_id || '',
+    workId: row.work_id || '',
+    planId: row.plan_id || workRow?.plan_id || '',
+    packageId: row.package_id || '',
+    workTitle: workRow?.title || '',
+    packageTitle: packageRow?.title || '',
+    planTitle: planRow?.title || '',
+    hook: planRow?.hook || '',
+    objective: planRow?.objective || '',
+    matchSource: row.match_source || 'manual',
+    linkedAt: row.linked_at || '',
+  };
+}
+
 /** 截图 → 作品数据（多模态识别）。独立成函数，供「截图回填」新建/更新共用。 */
 async function extractStatsFromScreenshot(assetRow) {
   if (!/^image\//.test(String(assetRow?.mime_type || ''))) throw errors.badRequest('请上传图片截图', 'VALIDATION_ERROR');
@@ -3057,11 +3189,20 @@ async function extractStatsFromScreenshot(assetRow) {
  * 返回 [{ id, origin, topic, style, shareUrl?, coverUrl?, stats }]，按回填/更新时间倒序。
  */
 async function publishedForReports(ownerKey, accountId) {
-  const [snapshotRows, copyRows, ownRows] = await Promise.all([
+  const [snapshotRows, copyRows, ownRows, linkRows, packageRows, workRows, planRows] = await Promise.all([
     arows('SELECT id,topic,stats,created_at,updated_at FROM junshi_workbench_review_snapshots WHERE owner_key=? AND account_id=? ORDER BY created_at DESC LIMIT 200', [ownerKey, accountId]).catch(() => []),
     arows('SELECT id,topic,style,stats FROM junshi_workbench_copy_drafts WHERE owner_key=? AND account_id=? ORDER BY created_at DESC', [ownerKey, accountId]),
     arows('SELECT * FROM junshi_workbench_published_works WHERE owner_key=? AND account_id=? ORDER BY published_at DESC, updated_at DESC LIMIT 100', [ownerKey, accountId]).catch(() => []),
+    arows('SELECT * FROM junshi_workbench_published_links WHERE owner_key=? AND account_id=? ORDER BY linked_at DESC LIMIT 300', [ownerKey, accountId]).catch(() => []),
+    arows("SELECT * FROM junshi_workbench_video_packages WHERE owner_key=? AND account_id=? AND status='ready' ORDER BY created_at DESC LIMIT 200", [ownerKey, accountId]).catch(() => []),
+    arows('SELECT * FROM junshi_workbench_video_works WHERE owner_key=? AND account_id=? ORDER BY created_at DESC LIMIT 200', [ownerKey, accountId]).catch(() => []),
+    arows('SELECT * FROM junshi_workbench_plans WHERE owner_key=? AND account_id=? ORDER BY created_at DESC LIMIT 200', [ownerKey, accountId]).catch(() => []),
   ]);
+  const linkByPublished = new Map(linkRows.map((row) => [row.published_work_id, row]));
+  const packageById = new Map(packageRows.map((row) => [row.id, row]));
+  const workById = new Map(workRows.map((row) => [row.id, row]));
+  const planById = new Map(planRows.map((row) => [row.id, row]));
+  const linkedWorkIds = new Set(linkRows.map((row) => row.work_id).filter(Boolean));
   const screenshotItems = [];
   let pendingCount = 0;
   for (const row of snapshotRows) {
@@ -3091,6 +3232,12 @@ async function publishedForReports(ownerKey, accountId) {
   }
   const ownItems = ownRows.map((row) => {
     const work = ownWorkOut(row);
+    const linkRow = linkByPublished.get(work.id) || null;
+    const linkedWork = linkRow ? workById.get(linkRow.work_id) : null;
+    const linkedPlanId = linkRow ? (linkRow.plan_id || linkedWork?.plan_id || '') : '';
+    const link = linkRow
+      ? publishedLinkOut(linkRow, packageById.get(linkRow.package_id), linkedWork, planById.get(linkedPlanId))
+      : null;
     return {
       id: work.id,
       origin: 'douyin_assistant',
@@ -3109,10 +3256,31 @@ async function publishedForReports(ownerKey, accountId) {
         source: 'douyin_assistant',
         awemeId: work.awemeId,
       },
+      link,
+      strategy: link ? { planTitle: link.planTitle, hook: link.hook, objective: link.objective, packageTitle: link.packageTitle } : null,
     };
   });
   const items = ownItems.concat(screenshotItems).sort((left, right) => String(right.stats?.backfilledAt || '').localeCompare(String(left.stats?.backfilledAt || '')));
-  return { items, ownCount: ownItems.length, screenshotCount: screenshotItems.length, pendingCount };
+  const linkable = [];
+  const seenLinkableWorks = new Set();
+  for (const pkg of packageRows) {
+    if (!pkg.work_id || linkedWorkIds.has(pkg.work_id) || seenLinkableWorks.has(pkg.work_id) || !workById.has(pkg.work_id)) continue;
+    seenLinkableWorks.add(pkg.work_id);
+    const work = workById.get(pkg.work_id);
+    const plan = planById.get(work?.plan_id || '');
+    linkable.push({
+      packageId: pkg.id,
+      packageTitle: pkg.title || '',
+      workId: pkg.work_id,
+      workTitle: work?.title || '',
+      planId: work?.plan_id || '',
+      planTitle: plan?.title || '',
+      hook: plan?.hook || '',
+      objective: plan?.objective || '',
+      createdAt: pkg.created_at || '',
+    });
+  }
+  return { items, ownCount: ownItems.length, screenshotCount: screenshotItems.length, pendingCount, linkedCount: ownItems.filter((item) => item.link).length, linkable };
 }
 
 
@@ -3210,6 +3378,14 @@ export async function handleJunshiWorkbench(ctx, rest = '/', search = new URLSea
       stats: await counts(owner.key),
       jobs: (await arows('SELECT * FROM junshi_workbench_jobs WHERE owner_key=? ORDER BY created_at DESC LIMIT 8', [owner.key])).map(jobOut),
     };
+  }
+
+  /* ── 合规快速体检（工作台创作链路共用同一规则包） ── */
+  if (rest === '/compliance/check' && method === 'POST') {
+    const content = text(ctx.body?.content);
+    if (!content) throw errors.badRequest('请提供要检查的标题、口播或发布文案', 'VALIDATION_ERROR', { field: 'content' });
+    if (content.length > 20000) throw errors.badRequest('单次最多检查 20000 字', 'VALIDATION_ERROR', { field: 'content' });
+    return auditMaterial(content);
   }
 
   /* ── 创作账号 ── */
@@ -4863,6 +5039,16 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
     } else if (action === 'confirm_transcript' && wf.kind === 'viral' && ['transcript', 'extract_failed'].includes(wf.stage)) {
       const transcript = text(ctx.body?.text).slice(0, 4000);
       if (!transcript) throw errors.badRequest('原文不能为空', 'VALIDATION_ERROR', { field: 'text' });
+      const originalTranscript = String(state.transcript || '');
+      await recordTranscriptConfirmation(owner, {
+        accountId: text(state.accountId) || 'default',
+        transcriptId: text(state.transcriptId),
+        mode: normalizeTranscriptMode(state.transcriptMode),
+        inputSource: text(state.sourceType).slice(0, 16),
+        resultSource: text(state.transcriptSource).slice(0, 16),
+        originalText: originalTranscript,
+        editedText: transcript,
+      }).catch(() => {});
       state.transcript = transcript;
       state.extractError = '';
       if (ctx.body?.rewritePlan === true) {
@@ -6359,6 +6545,72 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
     };
   }
 
+  /* ── 发布作品 ↔ 生成方案关联（手动确认，不按标题猜测） ── */
+  const publishedLinkMatch = rest.match(/^\/published-works\/([^/]+)\/link$/);
+  if (publishedLinkMatch && method === 'POST') {
+    const accountId = await resolveAccountId(owner.key, ctx.body?.accountId);
+    const publishedWorkId = decodeURIComponent(publishedLinkMatch[1]);
+    const packageId = text(ctx.body?.packageId);
+    if (!packageId) throw errors.badRequest('请选择要关联的生成成片', 'VALIDATION_ERROR', { field: 'packageId' });
+    const published = await arow('SELECT * FROM junshi_workbench_published_works WHERE id=? AND owner_key=? AND account_id=?', [publishedWorkId, owner.key, accountId]);
+    if (!published) throw errors.notFound('发布作品不存在', 'PUBLISHED_WORK_NOT_FOUND');
+    const packageRow = await arow('SELECT * FROM junshi_workbench_video_packages WHERE id=? AND owner_key=? AND account_id=?', [packageId, owner.key, accountId]);
+    if (!packageRow) throw errors.notFound('生成成片不存在', 'VIDEO_PACKAGE_NOT_FOUND');
+    if (packageRow.status !== 'ready') throw errors.badRequest('发布包还没生成完成，不能关联', 'VIDEO_PACKAGE_NOT_READY');
+    const workRow = await arow('SELECT * FROM junshi_workbench_video_works WHERE id=? AND owner_key=? AND account_id=?', [packageRow.work_id, owner.key, accountId]);
+    if (!workRow) throw errors.notFound('生成任务不存在', 'VIDEO_WORK_NOT_FOUND');
+    const planRow = workRow.plan_id
+      ? await arow('SELECT * FROM junshi_workbench_plans WHERE id=? AND owner_key=? AND account_id=?', [workRow.plan_id, owner.key, accountId])
+      : null;
+    const existingLinks = await arows('SELECT * FROM junshi_workbench_published_links WHERE owner_key=? AND account_id=?', [owner.key, accountId]);
+    const conflict = existingLinks.find((row) => row.work_id === workRow.id && row.published_work_id !== published.id);
+    if (conflict) throw errors.badRequest('这个生成成片已经关联了另一条发布作品，请先取消原关联', 'PUBLISHED_LINK_CONFLICT');
+    await aq('DELETE FROM junshi_workbench_published_links WHERE owner_key=? AND published_work_id=?', [owner.key, published.id]);
+    await aq('DELETE FROM junshi_workbench_published_links WHERE owner_key=? AND work_id=?', [owner.key, workRow.id]);
+    const at = nowIso();
+    const linkRow = {
+      id: id('jwplink'),
+      owner_key: owner.key,
+      org_id: owner.orgId || null,
+      account_id: accountId,
+      published_work_id: published.id,
+      aweme_id: published.aweme_id || '',
+      work_id: workRow.id,
+      plan_id: workRow.plan_id || '',
+      package_id: packageRow.id,
+      match_source: 'manual',
+      linked_at: at,
+      created_at: at,
+      updated_at: at,
+    };
+    await aq(
+      'INSERT INTO junshi_workbench_published_links (id,owner_key,org_id,account_id,published_work_id,aweme_id,work_id,plan_id,package_id,match_source,linked_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      [linkRow.id, linkRow.owner_key, linkRow.org_id, linkRow.account_id, linkRow.published_work_id, linkRow.aweme_id, linkRow.work_id, linkRow.plan_id, linkRow.package_id, linkRow.match_source, linkRow.linked_at, linkRow.created_at, linkRow.updated_at],
+    );
+    return { link: publishedLinkOut(linkRow, packageRow, workRow, planRow) };
+  }
+  if (publishedLinkMatch && method === 'DELETE') {
+    const accountId = await resolveAccountId(owner.key, text(search.get('accountId')) || undefined);
+    const publishedWorkId = decodeURIComponent(publishedLinkMatch[1]);
+    const existing = await arow('SELECT * FROM junshi_workbench_published_links WHERE owner_key=? AND account_id=? AND published_work_id=?', [owner.key, accountId, publishedWorkId]);
+    if (!existing) return { unlinked: false };
+    await aq('DELETE FROM junshi_workbench_published_links WHERE owner_key=? AND published_work_id=?', [owner.key, publishedWorkId]);
+    return { unlinked: true };
+  }
+
+  /* ── 转写质量与耗时指标（近 N 天） ── */
+  if (rest === '/metrics/transcripts' && method === 'GET') {
+    const accountId = await resolveAccountId(owner.key, text(search.get('accountId')) || undefined);
+    const days = clampInt(search.get('days'), 7, 1, 90);
+    const rows = await arows('SELECT * FROM junshi_workbench_transcript_metrics WHERE owner_key=? AND account_id=? ORDER BY created_at DESC LIMIT 5000', [owner.key, accountId]);
+    const since = Date.now() - days * 24 * 60 * 60 * 1000;
+    const filtered = rows.filter((row) => {
+      const at = Date.parse(row.created_at);
+      return !Number.isFinite(at) || at >= since;
+    });
+    return summarizeTranscriptMetrics(filtered, days);
+  }
+
   /* ── 十四期 · 数据复盘数据源（采集助手自己作品 + 五期截图回填） ── */
   if (rest === '/reports' && method === 'GET') {
     const accountId = await resolveAccountId(owner.key, text(search.get('accountId')) || undefined);
@@ -6378,7 +6630,9 @@ async function workflowsRoute(ctx, rest, search, method, owner) {
         own: report.ownCount,
         screenshot: report.screenshotCount,
         pending: report.pendingCount,
+        linked: report.linkedCount,
       },
+      linkable: report.linkable,
     };
   }
 

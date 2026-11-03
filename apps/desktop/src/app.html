@@ -60,11 +60,11 @@
     </main>
   </div>
 
-  <div class="toast" id="toast"></div>
-  <div class="modal-backdrop hidden" id="guide-modal">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="modal-backdrop hidden" id="guide-modal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="guide-title" aria-describedby="guide-intro" tabindex="-1">
       <h3 id="guide-title">同行采集怎么用</h3>
-      <p>只需要做一次设置，以后点“去采集”就行。</p>
+      <p id="guide-intro">只需要做一次设置，以后点“去采集”就行。</p>
       <div class="modal-steps">
         <div class="modal-step"><span>1</span><div><b>添加同行</b><p>把同行的抖音主页链接粘贴到输入框，点“添加同行”。</p></div></div>
         <div class="modal-step"><span>2</span><div><b>点“去采集”</b><p>客户端会打开这个同行的主页。需要登录或验证码时，按抖音页面提示自己完成。</p></div></div>

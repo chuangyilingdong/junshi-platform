@@ -26,7 +26,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { arow, arows, aq, corsHeaders, errors, id, nowIso, requireAuth, requireRole } from '../lib.js';
 import { EXPERTS, runChat, runRawText } from '../services/junshiChat.js';
-import { audit as auditCompliance, AUDIT_PROMPT, loadPack as loadCompliancePack } from '../services/complianceEngine.js';
+import { audit as auditCompliance, auditMaterial, AUDIT_PROMPT, loadPack as loadCompliancePack } from '../services/complianceEngine.js';
 import { handleDouyinAssistantPublic, handleJunshiWorkbench } from './junshiWorkbench.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -395,25 +395,8 @@ export async function handleJunshi(ctx) {
     const content = text(ctx.body?.content);
     if (!content) throw errors.badRequest('请提供要检查的文本', 'VALIDATION_ERROR', { field: 'content' });
     if (content.length > 20000) throw errors.badRequest('单次最多检查 20000 字', 'VALIDATION_ERROR', { field: 'content' });
-    // 规则引擎移植自开源项目 traffic-compass（MIT © code-wahaha）：L2 词库 + 白名单防误杀 +
-    // 语境窗口（极限词只在营销语境里按原严重度算）+ 资质红线。规则包见 data/junshi/compliance-rules.json。
-    const result = auditCompliance(content);
-    // 词表之外，再给三条"这类玩法要人工确认"的提示（本产品自有，来自资料库里的高风险玩法）
-    const risky = [];
-    if (/股权|终身班|存课|膨胀金|众筹|消费券/.test(content)) risky.push('涉及长期预收（股权/终身班/存课/膨胀金/众筹/消费券），先核当地预收费监管口径');
-    if (/抽奖|砸金蛋|红包墙|彩票|大转盘/.test(content)) risky.push('涉及有奖销售，需确认资质与最高奖金额上限');
-    if (/原价\s*\d+\s*[^\d]{0,10}(现价|到手|只要)\s*0/.test(content)) risky.push('价格对比表述（原价 X 现价 0）存在价格欺诈风险');
-    return {
-      length: content.length,
-      verdict: result.verdict,               // {level: block|fix|ok, text}
-      total: result.scan.hits.length,
-      hits: result.scan.hits,                // [{word, category, severity, count, replace, note}]
-      whitelist: result.scan.whitelist,      // 放行说明（防误杀）
-      redlines: result.scan.redlines,        // 资质红线
-      risky,
-      rules: { name: result.pack.name, updated: result.pack.updated, source: result.pack.source },
-      pass: result.verdict.level === 'ok' && risky.length === 0,
-    };
+    // 旧页面与工作台共用 auditMaterial，避免两套规则和风险提示口径漂移。
+    return auditMaterial(content);
   }
 
   // ── POST /api/junshi/compliance/review ── AI 深度审读（SSE 流式）

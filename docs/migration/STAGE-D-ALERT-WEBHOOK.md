@@ -11,6 +11,30 @@
 - 仓库仅保留空占位，不保存真实地址
 - **真实 Webhook 尚未配置，当前失败仍只写 journal**
 
+## 转写质量告警
+
+健康检查现在额外读取近 1 小时的转写指标：
+
+```text
+junshi_workbench_transcript_metrics
+```
+
+触发条件（默认值）：
+
+```text
+JUNSHI_TRANSCRIPT_ALERT_MIN_SAMPLES=5
+JUNSHI_TRANSCRIPT_ALERT_SUCCESS_RATE=70
+JUNSHI_TRANSCRIPT_ALERT_P95_MS=180000
+```
+
+- 有效样本少于 5 条：不告警，记录 `样本不足`。
+- 成功率低于 70%：告警。
+- P95 总耗时高于 180 秒：告警。
+- 指标表尚未部署：跳过该项，不阻断 API 健康检查。
+- MySQL 查询失败：作为健康检查失败进入 Webhook。
+
+阈值可以只在生产环境的 `production.env` 覆盖，不需要改代码。
+
 ## 安全边界
 
 真实地址只放：

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import fs from 'node:fs';
-import { buildViralOnePrompt, buildViralPlanPrompt, buildViralPlanRepairPrompt, demoViralPlans } from '../src/services/junshiWorkbenchContent.js';
+import { buildReviewsInsightPrompt, buildViralOnePrompt, buildViralPlanPrompt, buildViralPlanRepairPrompt, demoViralPlans } from '../src/services/junshiWorkbenchContent.js';
 
 const profile = {
   name: '少儿美术招生号', platform: '抖音', product: '少儿美术体验课', audience: '3-8岁家长',
@@ -84,4 +84,20 @@ test('rewrite plan normalization rejects incomplete or duplicate plan sets', () 
   assert.match(route, /new Set\(plans\.map/);
   assert.match(route, /三套方案必须使用不同的迁移思路/);
   assert.match(route, /id: `p\$\{index \+ 1\}`/);
+});
+
+test('review insight prompt compares linked plan and hook context', () => {
+  const prompt = buildReviewsInsightPrompt({
+    profile,
+    orgProfile: '广州少儿美术机构',
+    published: [{
+      topic: '家长先别急着报班',
+      style: '抖音已发布',
+      stats: { plays: 3200, likes: 61, comments: 7, shares: 4, saves: 18, publishedAt: '2026-11-01' },
+      link: { planTitle: '先别急着报班', hook: '家长第一句问多少钱，不代表只关心价格。', objective: '建立信任' },
+    }],
+  });
+  assert.match(prompt, /已关联生成方案 1 条/);
+  assert.match(prompt, /生成方案：先别急着报班/);
+  assert.match(prompt, /钩子：家长第一句问多少钱/);
 });
