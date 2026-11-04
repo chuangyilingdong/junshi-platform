@@ -45,6 +45,8 @@
 Desktop: 5/5
 uiPolish.complianceDetailsOpen=false
 uiPolish.productionFooterPosition=sticky
+uiPolish.footerBottomGap=0
+uiPolish.reportRowSingleLine=true
 uiPolish.modalFocusOpen=true
 uiPolish.modalFocusClosed=true
 1100×720 无横向溢出

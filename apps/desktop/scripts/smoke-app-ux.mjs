@@ -736,9 +736,19 @@ try {
   await page.waitForTimeout(200);
   const responsive = await page.evaluate(() => {
     const view = document.querySelector('.view');
-    return { viewClientWidth: view?.clientWidth || 0, viewScrollWidth: view?.scrollWidth || 0, width: window.innerWidth, height: window.innerHeight };
+    const footer = document.querySelector('.production-footer');
+    const viewRect = view?.getBoundingClientRect();
+    const footerRect = footer?.getBoundingClientRect();
+    return {
+      viewClientWidth: view?.clientWidth || 0,
+      viewScrollWidth: view?.scrollWidth || 0,
+      width: window.innerWidth,
+      height: window.innerHeight,
+      footerBottomGap: viewRect && footerRect ? Math.round(viewRect.bottom - footerRect.bottom) : null,
+    };
   });
   if (responsive.viewScrollWidth > responsive.viewClientWidth + 1) throw new Error(`production page overflows horizontally: ${JSON.stringify(responsive)}`);
+  if (responsive.footerBottomGap === null || Math.abs(responsive.footerBottomGap) > 2) throw new Error(`production footer is not flush with the viewport: ${JSON.stringify(responsive)}`);
 
   await page.locator('[data-action="production-save-plan"]').click();
   await page.waitForSelector('#production-plan-confirm', { timeout: 10000 });
@@ -782,6 +792,12 @@ try {
 
   await page.locator('[data-page="reports"]').click();
   await page.waitForSelector('[data-action="generate-insight"]:not([disabled])', { timeout: 5000 });
+  const reportRowLayout = await page.locator('.work-row').first().evaluate((row) => {
+    const visible = Array.from(row.children).filter((node) => getComputedStyle(node).display !== 'none');
+    const tops = visible.map((node) => Math.round(node.getBoundingClientRect().top));
+    return { height: Math.round(row.getBoundingClientRect().height), rowSpread: tops.length ? Math.max(...tops) - Math.min(...tops) : 0 };
+  });
+  if (reportRowLayout.height > 55 || reportRowLayout.rowSpread > 2) throw new Error(`report work row wrapped at narrow width: ${JSON.stringify(reportRowLayout)}`);
   await page.locator('[data-action="published-link-open"]').click();
   await page.waitForSelector('#published-link-package', { timeout: 5000 });
   await page.selectOption('#published-link-package', 'pkg-link');
